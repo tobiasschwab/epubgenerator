@@ -8,6 +8,7 @@ import {
   chapterDraftSchema,
   chapterSchema,
   mediaRefSchema,
+  modelsInfoSchema,
   pageDraftSchema,
   pageSchema,
   type Book,
@@ -16,6 +17,7 @@ import {
   type Chapter,
   type ChapterDraft,
   type MediaRef,
+  type ModelsInfo,
   type Page,
   type PageDraft,
 } from "./schemas";
@@ -171,11 +173,13 @@ export const api = {
   ai: {
     status: (): Promise<{ available: boolean }> =>
       request("/ai/status", aiStatusSchema),
+    models: (): Promise<ModelsInfo> => request("/ai/models", modelsInfoSchema),
     generateBook: (data: {
       prompt: string;
       language: string;
       chapter_count?: number | null;
       pages_per_chapter?: number | null;
+      model?: string | null;
     }): Promise<BookDraft> =>
       request("/ai/generate/book", bookDraftSchema, {
         method: "POST",
@@ -185,12 +189,17 @@ export const api = {
       prompt: string;
       language: string;
       page_count?: number | null;
+      model?: string | null;
     }): Promise<ChapterDraft> =>
       request("/ai/generate/chapter", chapterDraftSchema, {
         method: "POST",
         body: JSON.stringify(data),
       }),
-    generatePage: (data: { prompt: string; language: string }): Promise<PageDraft> =>
+    generatePage: (data: {
+      prompt: string;
+      language: string;
+      model?: string | null;
+    }): Promise<PageDraft> =>
       request("/ai/generate/page", pageDraftSchema, {
         method: "POST",
         body: JSON.stringify(data),
@@ -215,22 +224,27 @@ export const api = {
       chapterId: string,
       pageId: string,
       prompt: string,
+      model?: string | null,
     ): Promise<MediaRef> =>
       request(
         `/ai/books/${bookId}/chapters/${chapterId}/pages/${pageId}/image`,
         mediaRefSchema,
-        { method: "POST", body: JSON.stringify({ prompt }) },
+        { method: "POST", body: JSON.stringify({ prompt, model: model ?? null }) },
       ),
     generateAudio: (
       bookId: string,
       chapterId: string,
       pageId: string,
-      voice?: string,
+      voice?: string | null,
+      model?: string | null,
     ): Promise<MediaRef> =>
       request(
         `/ai/books/${bookId}/chapters/${chapterId}/pages/${pageId}/audio`,
         mediaRefSchema,
-        { method: "POST", body: JSON.stringify({ voice: voice ?? null }) },
+        {
+          method: "POST",
+          body: JSON.stringify({ voice: voice ?? null, model: model ?? null }),
+        },
       ),
   },
 };

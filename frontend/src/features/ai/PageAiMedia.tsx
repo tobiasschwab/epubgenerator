@@ -17,6 +17,8 @@ import { api } from "@/lib/api";
 import type { Chapter, MediaRef, Page } from "@/lib/schemas";
 
 import { ErrorLine } from "./GenerateBookDialog";
+import { useAiModels, useModelPreference } from "./hooks";
+import { ModelSelect, VoiceSelect } from "./ModelSelect";
 
 function plainText(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -56,9 +58,12 @@ function ImageGenDialog({ bookId, chapter, page, disabled, onAttach }: Props) {
   const [open, setOpen] = useState(false);
   const [prompt, setPrompt] = useState("");
   const [ref, setRef] = useState<MediaRef | null>(null);
+  const models = useAiModels();
+  const [model, setModel] = useModelPreference("image", models.data?.image.default);
 
   const generate = useMutation({
-    mutationFn: () => api.ai.generateImage(bookId, chapter.id, page.id, prompt),
+    mutationFn: () =>
+      api.ai.generateImage(bookId, chapter.id, page.id, prompt, model || undefined),
     onSuccess: setRef,
   });
 
@@ -96,6 +101,14 @@ function ImageGenDialog({ bookId, chapter, page, disabled, onAttach }: Props) {
               onChange={(e) => setPrompt(e.target.value)}
             />
           </div>
+          {models.data && (
+            <ModelSelect
+              label="Bildmodell"
+              group={models.data.image}
+              value={model}
+              onChange={setModel}
+            />
+          )}
           {ref && (
             <img
               src={api.mediaUrl(bookId, ref.id)}
@@ -132,9 +145,19 @@ function ImageGenDialog({ bookId, chapter, page, disabled, onAttach }: Props) {
 function AudioGenDialog({ bookId, chapter, page, disabled, onAttach }: Props) {
   const [open, setOpen] = useState(false);
   const [ref, setRef] = useState<MediaRef | null>(null);
+  const models = useAiModels();
+  const [model, setModel] = useModelPreference("tts", models.data?.tts.default);
+  const [voice, setVoice] = useModelPreference("voice", models.data?.voices[0]);
 
   const generate = useMutation({
-    mutationFn: () => api.ai.generateAudio(bookId, chapter.id, page.id),
+    mutationFn: () =>
+      api.ai.generateAudio(
+        bookId,
+        chapter.id,
+        page.id,
+        voice || undefined,
+        model || undefined,
+      ),
     onSuccess: setRef,
   });
 
@@ -164,6 +187,17 @@ function AudioGenDialog({ bookId, chapter, page, disabled, onAttach }: Props) {
           </DialogDescription>
         </DialogHeader>
         <div className="space-y-3">
+          {models.data && (
+            <div className="grid grid-cols-2 gap-3">
+              <ModelSelect
+                label="Sprachmodell"
+                group={models.data.tts}
+                value={model}
+                onChange={setModel}
+              />
+              <VoiceSelect voices={models.data.voices} value={voice} onChange={setVoice} />
+            </div>
+          )}
           {ref && (
             <audio controls src={api.mediaUrl(bookId, ref.id)} className="w-full" />
           )}

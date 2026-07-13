@@ -59,6 +59,23 @@ export const bookDraftSchema = z.object({
 
 export const aiStatusSchema = z.object({ available: z.boolean() });
 
+// --- KI-Modell-Katalog (Auswahl in der Oberfläche) ---
+export const modelOptionSchema = z.object({
+  id: z.string(),
+  label: z.string(),
+  tier: z.string(),
+});
+export const modelGroupSchema = z.object({
+  default: z.string(),
+  options: z.array(modelOptionSchema),
+});
+export const modelsInfoSchema = z.object({
+  text: modelGroupSchema,
+  image: modelGroupSchema,
+  tts: modelGroupSchema,
+  voices: z.array(z.string()),
+});
+
 export type MediaKind = z.infer<typeof mediaKindSchema>;
 export type MediaRef = z.infer<typeof mediaRefSchema>;
 export type Page = z.infer<typeof pageSchema>;
@@ -68,3 +85,6 @@ export type BookSummary = z.infer<typeof bookSummarySchema>;
 export type PageDraft = z.infer<typeof pageDraftSchema>;
 export type ChapterDraft = z.infer<typeof chapterDraftSchema>;
 export type BookDraft = z.infer<typeof bookDraftSchema>;
+export type ModelOption = z.infer<typeof modelOptionSchema>;
+export type ModelGroup = z.infer<typeof modelGroupSchema>;
+export type ModelsInfo = z.infer<typeof modelsInfoSchema>;

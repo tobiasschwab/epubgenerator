@@ -52,6 +52,25 @@ def test_status_unavailable_without_key(client) -> None:
     assert client.get("/api/ai/status").json() == {"available": False}
 
 
+def test_models_catalog(client) -> None:
+    info = client.get("/api/ai/models").json()
+    assert info["text"]["default"] == "gemini-3.5-flash"
+    assert info["image"]["default"] == "gemini-3.1-flash-image"
+    text_ids = [o["id"] for o in info["text"]["options"]]
+    assert "gemini-3.5-flash" in text_ids
+    assert "gemini-3.1-flash-lite" in text_ids
+    assert info["voices"]  # nicht leer
+
+
+def test_generate_book_honours_model_override(ai_client) -> None:
+    # Modell-Override wird an das Gateway durchgereicht.
+    draft = ai_client.post(
+        "/api/ai/generate/book",
+        json={"prompt": "Füchse", "model": "gemini-3.1-pro"},
+    ).json()
+    assert draft["title"] == "KI-Buch"
+
+
 def test_generate_returns_503_without_key(client) -> None:
     resp = client.post("/api/ai/generate/book", json={"prompt": "Ein Buch über Füchse"})
     assert resp.status_code == 503

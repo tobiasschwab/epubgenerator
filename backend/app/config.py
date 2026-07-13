@@ -25,8 +25,10 @@ class Settings(BaseSettings):
     # --- KI (Google Gemini) ---
     # Leerer Key => KI-Funktionen sind deaktiviert (App läuft trotzdem).
     gemini_api_key: str = ""
-    gemini_text_model: str = "gemini-2.5-flash"
-    gemini_image_model: str = "gemini-2.5-flash-image"
+    # Defaults auf aktuelle 3.x-Modelle (Stand 2026); per Env überschreibbar,
+    # in der Oberfläche pro Generierung wählbar.
+    gemini_text_model: str = "gemini-3.5-flash"
+    gemini_image_model: str = "gemini-3.1-flash-image"
     gemini_tts_model: str = "gemini-2.5-flash-preview-tts"
     gemini_tts_voice: str = "Kore"
 

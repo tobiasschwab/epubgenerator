@@ -12,6 +12,7 @@ from app.models.ai import (
     ChapterDraft,
     ChapterGenerateRequest,
     ImageGenerateRequest,
+    ModelsInfo,
     PageDraft,
     PageGenerateRequest,
 )
@@ -22,6 +23,11 @@ router = APIRouter(prefix="/api/ai", tags=["ai"])
 @router.get("/status", response_model=AIStatus)
 def ai_status(service: AIServiceDep) -> AIStatus:
     return AIStatus(available=service.available)
+
+
+@router.get("/models", response_model=ModelsInfo)
+def ai_models(service: AIServiceDep) -> ModelsInfo:
+    return service.models_info()
 
 
 # --- Generierung (Vorschau, nicht persistiert) --------------------------
@@ -78,7 +84,7 @@ def generate_page_image(
     req: ImageGenerateRequest,
     service: AIServiceDep,
 ) -> MediaRef:
-    return service.generate_image(book_id, chapter_id, page_id, req.prompt)
+    return service.generate_image(book_id, chapter_id, page_id, req.prompt, req.model)
 
 
 @router.post(
@@ -92,4 +98,4 @@ def generate_page_audio(
     req: AudioGenerateRequest,
     service: AIServiceDep,
 ) -> MediaRef:
-    return service.generate_audio(book_id, chapter_id, page_id, req.voice)
+    return service.generate_audio(book_id, chapter_id, page_id, req.voice, req.model)

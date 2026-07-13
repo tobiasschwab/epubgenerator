@@ -17,6 +17,8 @@ import { api } from "@/lib/api";
 import type { Chapter, ChapterDraft, Page, PageDraft } from "@/lib/schemas";
 
 import { ErrorLine } from "./GenerateBookDialog";
+import { useAiModels, useModelPreference } from "./hooks";
+import { ModelSelect } from "./ModelSelect";
 
 function excerpt(html: string): string {
   return html.replace(/<[^>]*>/g, " ").replace(/\s+/g, " ").trim();
@@ -34,6 +36,8 @@ export function GenerateContentDialog(props: Props) {
   const [language, setLanguage] = useState("Deutsch");
   const [pageCount, setPageCount] = useState(3);
   const [draft, setDraft] = useState<ChapterDraft | PageDraft | null>(null);
+  const models = useAiModels();
+  const [model, setModel] = useModelPreference("text", models.data?.text.default);
 
   const reset = () => {
     setDraft(null);
@@ -43,8 +47,13 @@ export function GenerateContentDialog(props: Props) {
   const generate = useMutation({
     mutationFn: (): Promise<ChapterDraft | PageDraft> =>
       scope === "chapter"
-        ? api.ai.generateChapter({ prompt, language, page_count: pageCount })
-        : api.ai.generatePage({ prompt, language }),
+        ? api.ai.generateChapter({
+            prompt,
+            language,
+            page_count: pageCount,
+            model: model || undefined,
+          })
+        : api.ai.generatePage({ prompt, language, model: model || undefined }),
     onSuccess: setDraft,
   });
 
@@ -110,6 +119,14 @@ export function GenerateContentDialog(props: Props) {
                 </div>
               )}
             </div>
+            {models.data && (
+              <ModelSelect
+                label="Textmodell"
+                group={models.data.text}
+                value={model}
+                onChange={setModel}
+              />
+            )}
             {error && <ErrorLine error={error} />}
             <div className="flex justify-end">
               <Button

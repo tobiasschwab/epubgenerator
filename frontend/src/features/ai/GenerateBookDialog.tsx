@@ -17,6 +17,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { api, ApiError } from "@/lib/api";
 import type { Book, BookDraft } from "@/lib/schemas";
 
+import { useAiModels, useModelPreference } from "./hooks";
+import { ModelSelect } from "./ModelSelect";
+
 export function GenerateBookDialog({
   disabled,
   onCreated,
@@ -30,6 +33,8 @@ export function GenerateBookDialog({
   const [chapterCount, setChapterCount] = useState(3);
   const [pagesPerChapter, setPagesPerChapter] = useState(3);
   const [draft, setDraft] = useState<BookDraft | null>(null);
+  const models = useAiModels();
+  const [model, setModel] = useModelPreference("text", models.data?.text.default);
 
   const reset = () => {
     setDraft(null);
@@ -43,6 +48,7 @@ export function GenerateBookDialog({
         language,
         chapter_count: chapterCount,
         pages_per_chapter: pagesPerChapter,
+        model: model || undefined,
       }),
     onSuccess: setDraft,
   });
@@ -116,6 +122,14 @@ export function GenerateBookDialog({
                 />
               </div>
             </div>
+            {models.data && (
+              <ModelSelect
+                label="Textmodell"
+                group={models.data.text}
+                value={model}
+                onChange={setModel}
+              />
+            )}
             {error && <ErrorLine error={error} />}
             <div className="flex justify-end">
               <Button

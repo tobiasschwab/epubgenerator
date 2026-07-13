@@ -19,10 +19,14 @@ from app.models.ai import (
     BookGenerateRequest,
     ChapterDraft,
     ChapterGenerateRequest,
+    ModelGroup,
+    ModelOption,
+    ModelsInfo,
     PageDraft,
     PageGenerateRequest,
 )
 from app.repositories import BookRepository
+from app.services import ai_catalog
 from app.services.gemini_gateway import GeminiGateway, pcm_to_wav
 from app.services.media_service import MediaService
 from app.services.tree import find_chapter, find_page
@@ -74,6 +78,25 @@ class AIService:
             )
         return self._gateway
 
+    # --- Modell-Katalog für die Oberfläche ------------------------------
+    def models_info(self) -> ModelsInfo:
+        return ModelsInfo(
+            text=self._group(ai_catalog.TEXT_MODELS, self._settings.gemini_text_model),
+            image=self._group(ai_catalog.IMAGE_MODELS, self._settings.gemini_image_model),
+            tts=self._group(ai_catalog.TTS_MODELS, self._settings.gemini_tts_model),
+            voices=ai_catalog.TTS_VOICES,
+        )
+
+    @staticmethod
+    def _group(options: list[ModelOption], default: str) -> ModelGroup:
+        # Ein per Env gesetztes, nicht katalogisiertes Modell dennoch anbieten.
+        if all(opt.id != default for opt in options):
+            options = [
+                ModelOption(id=default, label=f"{default} (konfiguriert)", tier="standard"),
+                *options,
+            ]
+        return ModelGroup(default=default, options=options)
+
     # --- Generierung (Vorschau) -----------------------------------------
     def generate_book(self, req: BookGenerateRequest) -> BookDraft:
         gateway = self._require()
@@ -86,7 +109,9 @@ class AIService:
             "Erzeuge ein vollständiges Buch mit Titel, kurzer Beschreibung, "
             f"Kapiteln und Seiten zum folgenden Thema:\n\n{req.prompt}{scope}"
         )
-        return cast(BookDraft, self._structured(prompt, req.language, BookDraft))
+        return cast(
+            BookDraft, self._structured(prompt, req.language, BookDraft, req.model)
+        )
 
     def generate_chapter(self, req: ChapterGenerateRequest) -> ChapterDraft:
         self._require()
@@ -95,7 +120,9 @@ class AIService:
             "Erzeuge ein einzelnes Kapitel mit Titel und Seiten zum folgenden "
             f"Thema:\n\n{req.prompt}{scope}"
         )
-        return cast(ChapterDraft, self._structured(prompt, req.language, ChapterDraft))
+        return cast(
+            ChapterDraft, self._structured(prompt, req.language, ChapterDraft, req.model)
+        )
 
     def generate_page(self, req: PageGenerateRequest) -> PageDraft:
         self._require()
@@ -103,13 +130,17 @@ class AIService:
             "Erzeuge den Inhalt einer einzelnen Buchseite zum folgenden "
             f"Thema:\n\n{req.prompt}"
         )
-        return cast(PageDraft, self._structured(prompt, req.language, PageDraft))
+        return cast(
+            PageDraft, self._structured(prompt, req.language, PageDraft, req.model)
+        )
 
-    def _structured(self, prompt: str, language: str, schema: type) -> object:
+    def _structured(
+        self, prompt: str, language: str, schema: type, model: str | None = None
+    ) -> object:
         gateway = self._require()
         try:
             result = gateway.generate_structured(
-                model=self._settings.gemini_text_model,
+                model=model or self._settings.gemini_text_model,
                 system_instruction=_html_rules(language),
                 prompt=prompt,
                 schema=schema,
@@ -153,14 +184,19 @@ class AIService:
 
     # --- Bild / Audio ----------------------------------------------------
     def generate_image(
-        self, book_id: str, chapter_id: str, page_id: str, prompt: str
+        self,
+        book_id: str,
+        chapter_id: str,
+        page_id: str,
+        prompt: str,
+        model: str | None = None,
     ) -> MediaRef:
         gateway = self._require()
         # Seite validieren (existiert sie?), Ergebnis wird noch nicht angehängt.
         find_page(find_chapter(self._repo.get(book_id), chapter_id), page_id)
         try:
             data, mime = gateway.generate_image(
-                model=self._settings.gemini_image_model, prompt=prompt
+                model=model or self._settings.gemini_image_model, prompt=prompt
             )
         except Exception as exc:  # noqa: BLE001
             raise AIUnavailableError(f"Bildgenerierung fehlgeschlagen: {exc}") from exc
@@ -169,7 +205,12 @@ class AIService:
         )
 
     def generate_audio(
-        self, book_id: str, chapter_id: str, page_id: str, voice: str | None
+        self,
+        book_id: str,
+        chapter_id: str,
+        page_id: str,
+        voice: str | None,
+        model: str | None = None,
     ) -> MediaRef:
         gateway = self._require()
         page = find_page(find_chapter(self._repo.get(book_id), chapter_id), page_id)
@@ -178,7 +219,7 @@ class AIService:
             raise ValidationError("Die Seite enthält keinen Text für die Sprachausgabe.")
         try:
             pcm, sample_rate = gateway.generate_pcm_audio(
-                model=self._settings.gemini_tts_model,
+                model=model or self._settings.gemini_tts_model,
                 text=text,
                 voice=voice or self._settings.gemini_tts_voice,
             )

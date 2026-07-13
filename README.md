@@ -52,8 +52,12 @@ Netzzugriff testbar.
 - **Audiogenerierung** pro Seite (Button): TTS aus dem Seitentext, als WAV in
   die Medienliste.
 
-Modelle (überschreibbar via Env): Text `gemini-2.5-flash`, Bild
-`gemini-2.5-flash-image`, TTS `gemini-2.5-flash-preview-tts`.
+**Modellauswahl:** Standardmodelle sind Text `gemini-3.5-flash`, Bild
+`gemini-3.1-flash-image`, TTS `gemini-2.5-flash-preview-tts` (via `EPUB_GEMINI_*`
+überschreibbar). In jedem KI-Dialog lässt sich das Modell **pro Generierung**
+umstellen (z. B. günstigeres `gemini-3.1-flash-lite` für Text oder
+`gemini-3-pro-image` für beste Bilder); die letzte Wahl wird im Browser
+gemerkt. `GET /api/ai/models` liefert den Katalog samt Defaults.
 
 ## Medien pro Seite
 
