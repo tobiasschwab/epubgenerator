@@ -13,6 +13,7 @@ from typing import Callable
 from ebooklib import epub
 
 from app.models import Book, MediaKind, MediaRef
+from app.rendering.annotations import AnnotationMode, new_counter
 from app.rendering.css import BASE_CSS
 from app.rendering.html import render_page_fragment
 
@@ -67,6 +68,7 @@ def build_epub(book: Book, media_loader: MediaLoader) -> bytes:
 
     spine: list = ["nav"]
     toc: list = []
+    note_counter = new_counter()
 
     for c_index, chapter in enumerate(book.chapters):
         page_links: list[epub.Link] = []
@@ -76,7 +78,12 @@ def build_epub(book: Book, media_loader: MediaLoader) -> bytes:
                     embed_media(ref)
 
             file_name = f"chap_{c_index}_page_{p_index}.xhtml"
-            fragment = render_page_fragment(page, resolver)
+            fragment = render_page_fragment(
+                page,
+                resolver,
+                annotation_mode=AnnotationMode.epub,
+                note_counter=note_counter,
+            )
             heading = ""
             if p_index == 0:
                 title = chapter.title.strip() or f"Kapitel {c_index + 1}"

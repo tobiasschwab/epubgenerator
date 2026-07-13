@@ -35,6 +35,54 @@ body {
   font-family: sans-serif;
   font-size: 0.9rem;
 }
+
+/* Annotationen / Erklärungen */
+.annotation { position: relative; }
+.annotation-ref {
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: #1a4ba3;
+  text-decoration: none;
+  border-bottom: 1px dotted #1a4ba3;
+}
+.annotation-mark {
+  font-size: 0.7em;
+  vertical-align: super;
+  line-height: 0;
+  color: #1a4ba3;
+}
+.annotation-note {
+  display: block;
+  margin: 0.5rem 0;
+  padding: 0.5rem 0.75rem;
+  border-left: 3px solid #1a4ba3;
+  background: #eef3fb;
+  border-radius: 4px;
+  font-family: sans-serif;
+  font-size: 0.9rem;
+}
+.annotation-note[hidden] { display: none; }
+.annotation-note p { margin: 0 0 0.3em; }
+.annotation-note p:last-child { margin-bottom: 0; }
+aside.annotation-note { border-left-color: #999; }
+""".strip()
+
+# Klick-Logik nur für die interaktive Vorschau (Popover ein-/ausklappen).
+ANNOTATION_JS = """
+document.addEventListener('click', function (e) {
+  var btn = e.target.closest('.annotation-ref');
+  if (!btn) return;
+  var id = btn.getAttribute('aria-controls');
+  var note = id && document.getElementById(id);
+  if (!note) return;
+  var open = !note.hasAttribute('hidden');
+  if (open) { note.setAttribute('hidden', 'hidden'); btn.setAttribute('aria-expanded', 'false'); }
+  else { note.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true'); }
+});
 """.strip()
 
 PRINT_CSS = """
@@ -46,4 +94,14 @@ PRINT_CSS = """
 .chapter:first-of-type { page-break-before: avoid; }
 .page { page-break-inside: avoid; }
 img { page-break-inside: avoid; }
+
+/* Annotationen im PDF als echte Fußnoten am Seitenende (WeasyPrint). */
+.footnote {
+  float: footnote;
+  font-size: 0.85rem;
+  font-family: sans-serif;
+}
+.footnote p { display: inline; margin: 0; }
+@page { @footnote { border-top: 0.5pt solid #999; padding-top: 2pt; } }
+.footnote::footnote-call { font-size: 0.7em; vertical-align: super; }
 """.strip()

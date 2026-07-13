@@ -1,3 +1,4 @@
+from app.rendering.annotations import AnnotationMode
 from app.rendering.html import (
     BASE_CSS,
     PRINT_CSS,
@@ -10,6 +11,7 @@ from app.rendering.html import (
 __all__ = [
     "BASE_CSS",
     "PRINT_CSS",
+    "AnnotationMode",
     "MediaResolver",
     "render_book_document",
     "render_chapter_fragment",

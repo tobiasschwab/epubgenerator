@@ -10,6 +10,7 @@ from pathlib import Path
 from typing import Callable
 
 from app.models import Book, MediaRef
+from app.rendering.annotations import AnnotationMode
 from app.rendering.html import render_book_document
 
 # Resolver liefert einen file://-Pfad, den WeasyPrint laden kann.
@@ -31,5 +32,6 @@ def build_pdf(book: Book, media_path_resolver: MediaPathResolver, base_url: str)
         resolver,
         audio_placeholder=True,
         include_print_css=True,
+        annotation_mode=AnnotationMode.pdf,
     )
     return HTML(string=html_doc, base_url=base_url).write_pdf()

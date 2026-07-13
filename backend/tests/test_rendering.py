@@ -1,8 +1,14 @@
 from __future__ import annotations
 
 from app.models import Book, Chapter, MediaKind, MediaRef, Page
+from app.rendering.annotations import AnnotationMode, new_counter
 from app.rendering.epub import build_epub
 from app.rendering.html import normalize_fragment, render_book_document, render_page_fragment
+
+_ANNOTATED = (
+    '<p><span class="annotation" data-note="Zeile eins&#10;Zeile zwei">'
+    "一ばんこわいひがはじまりました</span> Rest.</p>"
+)
 
 
 def test_normalize_strips_disallowed_tags_and_attrs() -> None:
@@ -78,6 +84,66 @@ def test_render_book_document_full_and_single_chapter() -> None:
     single = render_book_document(book, lambda ref: "", chapter_id=book.chapters[0].id)
     assert "Kapitel 1" in single
     assert "Kapitel 2" not in single
+
+
+def test_normalize_keeps_annotation_span() -> None:
+    out = normalize_fragment(_ANNOTATED)
+    assert 'class="annotation"' in out
+    assert "data-note" in out
+    assert "一ばんこわいひがはじまりました" in out
+
+
+def test_annotation_interactive_mode_toggle() -> None:
+    page = Page(text=_ANNOTATED)
+    out = render_page_fragment(
+        page, lambda r: "", annotation_mode=AnnotationMode.interactive
+    )
+    assert 'class="annotation-ref"' in out
+    assert 'aria-controls="note-1"' in out
+    assert 'class="annotation-note"' in out and 'hidden="hidden"' in out
+    # Erklärungszeilen als Absätze
+    assert "<p>Zeile eins</p>" in out
+    assert "<p>Zeile zwei</p>" in out
+    # kein rohes data-note mehr
+    assert "data-note" not in out
+
+
+def test_annotation_epub_mode_footnote() -> None:
+    page = Page(text=_ANNOTATED)
+    out = render_page_fragment(page, lambda r: "", annotation_mode=AnnotationMode.epub)
+    assert 'epub:type="noteref"' in out
+    assert 'epub:type="footnote"' in out
+    assert 'href="#fn-1"' in out and 'id="fn-1"' in out
+
+
+def test_annotation_pdf_mode_float_footnote() -> None:
+    page = Page(text=_ANNOTATED)
+    out = render_page_fragment(page, lambda r: "", annotation_mode=AnnotationMode.pdf)
+    assert 'class="footnote"' in out
+    assert "noteref" not in out  # keine EPUB-Referenz im PDF-Modus
+
+
+def test_annotation_numbering_continuous_across_pages() -> None:
+    counter = new_counter()
+    chapter = Chapter(
+        title="K",
+        pages=[Page(text=_ANNOTATED), Page(text=_ANNOTATED)],
+    )
+    outs = [
+        render_page_fragment(
+            p, lambda r: "", annotation_mode=AnnotationMode.epub, note_counter=counter
+        )
+        for p in chapter.pages
+    ]
+    assert 'id="fn-1"' in outs[0]
+    assert 'id="fn-2"' in outs[1]
+
+
+def test_preview_document_includes_annotation_script() -> None:
+    book = Book(title="B", chapters=[Chapter(title="K", pages=[Page(text=_ANNOTATED)])])
+    doc = render_book_document(book, lambda r: "")
+    assert "annotation-ref" in doc
+    assert "<script>" in doc  # interaktive Klick-Logik
 
 
 def test_build_epub_produces_zip() -> None:

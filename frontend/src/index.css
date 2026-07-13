@@ -90,3 +90,9 @@
 .ProseMirror img {
   @apply max-w-full h-auto rounded;
 }
+/* Annotationen im Editor sichtbar machen (gepunktete Unterstreichung). */
+.ProseMirror .annotation {
+  border-bottom: 1px dotted hsl(222 47% 40%);
+  background: hsl(222 47% 96%);
+  cursor: help;
+}

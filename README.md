@@ -59,6 +59,21 @@ umstellen (z. B. günstigeres `gemini-3.1-flash-lite` für Text oder
 `gemini-3-pro-image` für beste Bilder); die letzte Wahl wird im Browser
 gemerkt. `GET /api/ai/models` liefert den Katalog samt Defaults.
 
+## Erklärungen / Annotationen (klickbare Fußnoten)
+
+Markierter Text kann eine **Erklärung** tragen, die je nach Ausgabe passend
+erscheint — eine Quelle, drei Darstellungen:
+
+- **Vorschau:** Klick auf das markierte Wort → Erklärung klappt als Popover auf.
+- **EPUB3:** native Popup-Fußnote (`epub:type="noteref"`/`footnote"`) — in
+  E-Readern als Tap-Popup.
+- **PDF:** Fußnote am Seitenende (`float: footnote`, WeasyPrint).
+
+Im Editor: Text markieren → **„Erklärung"** → Erklärungstext eingeben. Gespeichert
+wird inline als `<span class="annotation" data-note="…">`; die Rendering-Schicht
+wandelt das je Ziel um. Ideal z. B. für Sprachlern-Bücher (Wort-für-Wort-
+Übersetzung, Grammatik, Aussprache).
+
 ## Medien pro Seite
 
 Jede Seite trägt eine **geordnete, gemischte Medienliste** — beliebig viele

@@ -9,13 +9,18 @@ oder relativer Pfad fürs PDF).
 from __future__ import annotations
 
 from html import escape
-from typing import Callable
+from typing import Callable, Iterator
 from xml.sax.saxutils import quoteattr
 
 from lxml import etree, html as lxml_html
 
 from app.models import Book, Chapter, MediaKind, MediaRef, Page
-from app.rendering.css import BASE_CSS, PRINT_CSS
+from app.rendering.annotations import (
+    AnnotationMode,
+    new_counter,
+    transform_annotations,
+)
+from app.rendering.css import ANNOTATION_JS, BASE_CSS, PRINT_CSS
 
 __all__ = [
     "BASE_CSS",
@@ -39,7 +44,7 @@ _ALLOWED_TAGS = {
 }
 _ALLOWED_ATTRS = {
     "a": {"href", "title"},
-    "span": set(),
+    "span": {"class", "data-note"},
 }
 
 
@@ -135,10 +140,14 @@ def render_page_fragment(
     resolver: MediaResolver,
     *,
     audio_placeholder: bool = False,
+    annotation_mode: AnnotationMode = AnnotationMode.interactive,
+    note_counter: Iterator[int] | None = None,
 ) -> str:
-    """Rendert eine Seite als XHTML-Fragment (Text + geordnete, gemischte Medien)."""
+    """Rendert eine Seite als XHTML-Fragment (Text + Medien + Annotationen)."""
+    counter = note_counter if note_counter is not None else new_counter()
     parts: list[str] = ['<section class="page">']
     text = normalize_fragment(page.text)
+    text, asides = transform_annotations(text, annotation_mode, counter)
     parts.append(f'<div class="page-text">{text}</div>')
     for ref in page.media:
         if ref.kind == MediaKind.image:
@@ -148,6 +157,8 @@ def render_page_fragment(
                 parts.append(_audio_placeholder_html(ref))
             else:
                 parts.append(_audio_html(ref, resolver))
+    # EPUB: Fußnoten-Asides in dasselbe Dokument wie die Referenz legen.
+    parts.extend(asides)
     parts.append("</section>")
     return "".join(parts)
 
@@ -157,14 +168,23 @@ def render_chapter_fragment(
     resolver: MediaResolver,
     *,
     audio_placeholder: bool = False,
+    annotation_mode: AnnotationMode = AnnotationMode.interactive,
+    note_counter: Iterator[int] | None = None,
 ) -> str:
     """Rendert ein Kapitel (Titel + alle Seiten) als XHTML-Fragment."""
+    counter = note_counter if note_counter is not None else new_counter()
     parts: list[str] = ['<section class="chapter">']
     title = chapter.title.strip() or "Kapitel"
     parts.append(f'<h2 class="chapter-title">{escape(title)}</h2>')
     for page in chapter.pages:
         parts.append(
-            render_page_fragment(page, resolver, audio_placeholder=audio_placeholder)
+            render_page_fragment(
+                page,
+                resolver,
+                audio_placeholder=audio_placeholder,
+                annotation_mode=annotation_mode,
+                note_counter=counter,
+            )
         )
     parts.append("</section>")
     return "".join(parts)
@@ -177,6 +197,7 @@ def render_book_document(
     chapter_id: str | None = None,
     audio_placeholder: bool = False,
     include_print_css: bool = False,
+    annotation_mode: AnnotationMode = AnnotationMode.interactive,
 ) -> str:
     """Rendert ein komplettes HTML-Dokument (Vorschau bzw. PDF-Quelle).
 
@@ -186,6 +207,7 @@ def render_book_document(
     if chapter_id is not None:
         chapters = [c for c in book.chapters if c.id == chapter_id]
 
+    counter = new_counter()
     body_parts: list[str] = []
     if chapter_id is None:
         body_parts.append(f'<h1 class="book-title">{escape(book.title)}</h1>')
@@ -196,11 +218,21 @@ def render_book_document(
     for chapter in chapters:
         body_parts.append(
             render_chapter_fragment(
-                chapter, resolver, audio_placeholder=audio_placeholder
+                chapter,
+                resolver,
+                audio_placeholder=audio_placeholder,
+                annotation_mode=annotation_mode,
+                note_counter=counter,
             )
         )
 
     css = BASE_CSS + ("\n" + PRINT_CSS if include_print_css else "")
+    # Nur in der interaktiven Vorschau die Klick-Logik für Annotationen laden.
+    script = (
+        f"<script>\n{ANNOTATION_JS}\n</script>\n"
+        if annotation_mode is AnnotationMode.interactive
+        else ""
+    )
     return (
         '<!DOCTYPE html>\n'
         '<html lang="de">\n<head>\n'
@@ -209,5 +241,7 @@ def render_book_document(
         f"<style>\n{css}\n</style>\n"
         "</head>\n<body>\n"
         + "".join(body_parts)
-        + "\n</body>\n</html>"
+        + "\n"
+        + script
+        + "</body>\n</html>"
     )
