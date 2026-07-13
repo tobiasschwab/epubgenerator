@@ -1,0 +1,38 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+body {
+  @apply bg-muted text-foreground antialiased;
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Editor-Grundstil (TipTap) */
+.ProseMirror {
+  @apply min-h-[8rem] rounded-md border border-border bg-background p-3 outline-none;
+}
+.ProseMirror:focus {
+  @apply ring-2 ring-primary/20;
+}
+.ProseMirror p {
+  @apply my-1;
+}
+.ProseMirror h1 {
+  @apply text-2xl font-bold my-2;
+}
+.ProseMirror h2 {
+  @apply text-xl font-semibold my-2;
+}
+.ProseMirror ul {
+  @apply list-disc ml-6;
+}
+.ProseMirror ol {
+  @apply list-decimal ml-6;
+}
+.ProseMirror img {
+  @apply max-w-full h-auto rounded;
+}

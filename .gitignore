@@ -1,0 +1,23 @@
+# Nutzdaten (gemapptes Volume) — NICHT versionieren
+/data/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+*.egg-info/
+
+# Node / Frontend
+node_modules/
+frontend/dist/
+backend/app/static/
+.vite/
+
+# Env / Editor
+.env
+.env.local
+.DS_Store
+*.log
