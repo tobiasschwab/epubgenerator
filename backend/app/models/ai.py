@@ -50,6 +50,19 @@ class PageGenerateRequest(BaseModel):
     model: str | None = None
 
 
+class ExplainRequest(BaseModel):
+    """Erklärung zu einem markierten Textabschnitt erzeugen."""
+
+    text: str = Field(min_length=1, max_length=4000)
+    language: str = "Deutsch"
+    model: str | None = None
+
+
+class ExplanationDraft(BaseModel):
+    # Klartext-Erklärung mit Zeilenumbrüchen (kein HTML) — passt in data-note.
+    note: str = ""
+
+
 class ImageGenerateRequest(BaseModel):
     prompt: str = Field(min_length=1, max_length=2000)
     model: str | None = None

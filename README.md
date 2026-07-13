@@ -69,10 +69,11 @@ erscheint — eine Quelle, drei Darstellungen:
   E-Readern als Tap-Popup.
 - **PDF:** Fußnote am Seitenende (`float: footnote`, WeasyPrint).
 
-Im Editor: Text markieren → **„Erklärung"** → Erklärungstext eingeben. Gespeichert
-wird inline als `<span class="annotation" data-note="…">`; die Rendering-Schicht
-wandelt das je Ziel um. Ideal z. B. für Sprachlern-Bücher (Wort-für-Wort-
-Übersetzung, Grammatik, Aussprache).
+Im Editor: Text markieren → **„Erklärung"** → Erklärungstext eingeben (oder per
+**„Mit KI erklären"** von Gemini erzeugen lassen — Wort-für-Wort, Grammatik,
+Übersetzung). Gespeichert wird inline als `<span class="annotation"
+data-note="…">`; die Rendering-Schicht wandelt das je Ziel um. Ideal z. B. für
+Sprachlern-Bücher.
 
 ## Medien pro Seite
 

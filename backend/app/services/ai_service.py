@@ -19,6 +19,8 @@ from app.models.ai import (
     BookGenerateRequest,
     ChapterDraft,
     ChapterGenerateRequest,
+    ExplainRequest,
+    ExplanationDraft,
     ModelGroup,
     ModelOption,
     ModelsInfo,
@@ -46,6 +48,18 @@ def _html_rules(language: str) -> str:
         "Keine <html>/<body>/<div>-Tags, keine Inline-Styles, keine <img>- oder "
         "<audio>-Tags. Das Bild-Prompt-Feld enthält einen kurzen, bildhaften "
         "englischen Prompt für eine passende Illustration oder bleibt leer."
+    )
+
+
+def _explain_rules(language: str) -> str:
+    return (
+        "Du bist ein Sprachlern-Assistent. Erkläre den vom Nutzer markierten "
+        f"Textabschnitt kompakt und lernfreundlich auf {language}. "
+        "Gib ausschließlich das Feld 'note' zurück: reiner Klartext (KEIN HTML, "
+        "kein Markdown) mit Zeilenumbrüchen. Enthalte, wo sinnvoll: den "
+        "Originalabschnitt, ggf. eine andere Schriftform/Umschrift, die "
+        "Wort-für-Wort-Bedeutung, eine kurze Grammatik-Erläuterung und eine "
+        "natürliche Übersetzung."
     )
 
 
@@ -134,14 +148,32 @@ class AIService:
             PageDraft, self._structured(prompt, req.language, PageDraft, req.model)
         )
 
+    def explain(self, req: ExplainRequest) -> ExplanationDraft:
+        prompt = f"Erkläre diesen Textabschnitt:\n\n{req.text}"
+        return cast(
+            ExplanationDraft,
+            self._structured(
+                prompt,
+                req.language,
+                ExplanationDraft,
+                req.model,
+                system_instruction=_explain_rules(req.language),
+            ),
+        )
+
     def _structured(
-        self, prompt: str, language: str, schema: type, model: str | None = None
+        self,
+        prompt: str,
+        language: str,
+        schema: type,
+        model: str | None = None,
+        system_instruction: str | None = None,
     ) -> object:
         gateway = self._require()
         try:
             result = gateway.generate_structured(
                 model=model or self._settings.gemini_text_model,
-                system_instruction=_html_rules(language),
+                system_instruction=system_instruction or _html_rules(language),
                 prompt=prompt,
                 schema=schema,
             )

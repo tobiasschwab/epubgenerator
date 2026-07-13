@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   aiStatusSchema,
   bookDraftSchema,
+  explanationSchema,
   bookSchema,
   bookSummaryListSchema,
   chapterDraftSchema,
@@ -174,6 +175,15 @@ export const api = {
     status: (): Promise<{ available: boolean }> =>
       request("/ai/status", aiStatusSchema),
     models: (): Promise<ModelsInfo> => request("/ai/models", modelsInfoSchema),
+    explain: (data: {
+      text: string;
+      language: string;
+      model?: string | null;
+    }): Promise<{ note: string }> =>
+      request("/ai/explain", explanationSchema, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     generateBook: (data: {
       prompt: string;
       language: string;

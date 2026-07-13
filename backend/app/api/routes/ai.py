@@ -11,6 +11,8 @@ from app.models.ai import (
     BookGenerateRequest,
     ChapterDraft,
     ChapterGenerateRequest,
+    ExplainRequest,
+    ExplanationDraft,
     ImageGenerateRequest,
     ModelsInfo,
     PageDraft,
@@ -44,6 +46,11 @@ def generate_chapter(req: ChapterGenerateRequest, service: AIServiceDep) -> Chap
 @router.post("/generate/page", response_model=PageDraft)
 def generate_page(req: PageGenerateRequest, service: AIServiceDep) -> PageDraft:
     return service.generate_page(req)
+
+
+@router.post("/explain", response_model=ExplanationDraft)
+def explain(req: ExplainRequest, service: AIServiceDep) -> ExplanationDraft:
+    return service.explain(req)
 
 
 # --- Commit (Persistieren des bestätigten Drafts) -----------------------

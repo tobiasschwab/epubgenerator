@@ -58,6 +58,7 @@ export const bookDraftSchema = z.object({
 });
 
 export const aiStatusSchema = z.object({ available: z.boolean() });
+export const explanationSchema = z.object({ note: z.string() });
 
 // --- KI-Modell-Katalog (Auswahl in der Oberfläche) ---
 export const modelOptionSchema = z.object({

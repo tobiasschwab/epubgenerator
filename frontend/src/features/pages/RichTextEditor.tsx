@@ -1,7 +1,8 @@
 import Image from "@tiptap/extension-image";
+import { useMutation } from "@tanstack/react-query";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
-import { MessageSquarePlus } from "lucide-react";
+import { MessageSquarePlus, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -14,6 +15,8 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { useAiStatus } from "@/features/ai/hooks";
+import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { Annotation } from "./annotation-extension";
@@ -31,6 +34,12 @@ export function RichTextEditor({ value, onChange }: Props) {
   const [annOpen, setAnnOpen] = useState(false);
   const [noteText, setNoteText] = useState("");
   const [anchorText, setAnchorText] = useState("");
+  const [anchorRealText, setAnchorRealText] = useState("");
+  const aiStatus = useAiStatus();
+  const explain = useMutation({
+    mutationFn: (text: string) => api.ai.explain({ text, language: "Deutsch" }),
+    onSuccess: (res) => setNoteText(res.note),
+  });
 
   const editor = useEditor({
     extensions: [
@@ -58,8 +67,15 @@ export function RichTextEditor({ value, onChange }: Props) {
   const canAnnotate = from !== to || annotationActive;
 
   const openAnnotation = () => {
-    const selected = editor.state.doc.textBetween(from, to, " ");
+    let selected = editor.state.doc.textBetween(from, to, " ");
+    if (!selected && annotationActive) {
+      // Bestehende Annotation: Markierung auf den ganzen Mark ausdehnen und lesen.
+      editor.chain().extendMarkRange("annotation").run();
+      const sel = editor.state.selection;
+      selected = editor.state.doc.textBetween(sel.from, sel.to, " ");
+    }
     const existing = editor.getAttributes("annotation").note as string | undefined;
+    setAnchorRealText(selected);
     setAnchorText(selected || "(bestehende Markierung)");
     setNoteText(existing ?? "");
     setAnnOpen(true);
@@ -144,14 +160,31 @@ export function RichTextEditor({ value, onChange }: Props) {
               {anchorText}
             </div>
             <div className="space-y-1">
-              <Label>Erklärung</Label>
+              <div className="flex items-center justify-between">
+                <Label>Erklärung</Label>
+                {aiStatus.data?.available && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="secondary"
+                    disabled={!anchorRealText || explain.isPending}
+                    onClick={() => explain.mutate(anchorRealText)}
+                  >
+                    <Sparkles /> {explain.isPending ? "Erkläre…" : "Mit KI erklären"}
+                  </Button>
+                )}
+              </div>
               <Textarea
                 rows={8}
-                autoFocus
                 placeholder="z. B. Wort-für-Wort-Übersetzung, Grammatik, Aussprache …"
                 value={noteText}
                 onChange={(e) => setNoteText(e.target.value)}
               />
+              {explain.isError && (
+                <p className="text-sm text-destructive">
+                  KI-Erklärung fehlgeschlagen.
+                </p>
+              )}
             </div>
             <div className="flex justify-between">
               {annotationActive ? (

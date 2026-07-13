@@ -7,7 +7,7 @@ import pytest
 
 from app.api.deps import get_ai_service
 from app.config import get_settings
-from app.models.ai import BookDraft, ChapterDraft, PageDraft
+from app.models.ai import BookDraft, ChapterDraft, ExplanationDraft, PageDraft
 from app.repositories import BookRepository
 from app.services import AIService
 from app.services.media_service import MediaService
@@ -26,6 +26,8 @@ class FakeGateway:
             )
         if schema is ChapterDraft:
             return ChapterDraft(title="KI-Kapitel", pages=[page])
+        if schema is ExplanationDraft:
+            return ExplanationDraft(note="Wort für Wort:\nhi = hallo")
         return page
 
     def generate_image(self, *, model, prompt):
@@ -60,6 +62,20 @@ def test_models_catalog(client) -> None:
     assert "gemini-3.5-flash" in text_ids
     assert "gemini-3.1-flash-lite" in text_ids
     assert info["voices"]  # nicht leer
+
+
+def test_explain_returns_note(ai_client) -> None:
+    resp = ai_client.post(
+        "/api/ai/explain",
+        json={"text": "一ばんこわいひがはじまりました", "language": "Deutsch"},
+    ).json()
+    assert "note" in resp
+    assert "Wort für Wort" in resp["note"]
+
+
+def test_explain_503_without_key(client) -> None:
+    resp = client.post("/api/ai/explain", json={"text": "hallo"})
+    assert resp.status_code == 503
 
 
 def test_generate_book_honours_model_override(ai_client) -> None:
