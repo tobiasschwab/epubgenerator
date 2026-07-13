@@ -20,6 +20,21 @@ mit Live-Vorschau und Export als EPUB3 und PDF. Single-User, keine Datenbank
 - **E-Reader**: das exportierte EPUB, mit **epub.js** paginiert wie in einem
   E-Reader gerendert.
 
+## Screenshots
+
+Desktop-Ansichten unter [`docs/screenshots/`](./docs/screenshots):
+Bücherliste, Editor (3-Spalten mit gemischten Medien), KI-Bild-Dialog
+(mit vorbelegtem Seitentext), E-Reader-Vorschau (epub.js) und KI-Buch-Dialog.
+
+## Orphan-Cleanup (verwaiste Medien)
+
+Nicht referenzierte Mediendateien (z. B. verworfene KI-Generierungen) werden
+periodisch entfernt — im Hintergrund über einen Lifespan-Task
+(`EPUB_MEDIA_CLEANUP_INTERVAL_SECONDS`, Default 1800 s; 0 deaktiviert) und
+manuell via `POST /api/books/{bookId}/media/cleanup`. Eine Karenzzeit
+(`EPUB_MEDIA_CLEANUP_GRACE_SECONDS`, Default 3600 s) schützt frisch erzeugte,
+noch nicht bestätigte Medien.
+
 ## KI-Integration (Google Gemini)
 
 Optional, aktiviert sobald ein `EPUB_GEMINI_API_KEY` gesetzt ist (sonst sind die

@@ -1,5 +1,9 @@
 from __future__ import annotations
 
+import asyncio
+import contextlib
+import logging
+from collections.abc import AsyncIterator
 from pathlib import Path
 
 from fastapi import FastAPI, Request
@@ -8,13 +12,45 @@ from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from app.api.routes import ai, books, chapters, export, media, pages, preview
-from app.config import get_settings
+from app.config import Settings, get_settings
 from app.errors import DomainError
+from app.repositories import BookRepository
+from app.services import MediaService
+
+logger = logging.getLogger("epub.cleanup")
+
+
+async def _media_cleanup_loop(settings: Settings) -> None:
+    """Periodisch verwaiste Mediendateien über alle Bücher entfernen."""
+    media = MediaService(BookRepository(settings), settings)
+    interval = settings.media_cleanup_interval_seconds
+    while True:
+        try:
+            removed = await asyncio.to_thread(media.cleanup_all)
+            if removed:
+                logger.info("Media-Cleanup: %d verwaiste Datei(en) entfernt", removed)
+        except Exception:  # noqa: BLE001 — Loop darf nie sterben
+            logger.exception("Media-Cleanup fehlgeschlagen")
+        await asyncio.sleep(interval)
 
 
 def create_app() -> FastAPI:
     settings = get_settings()
-    app = FastAPI(title="ePUB3 Book Builder", version="0.1.0")
+
+    @contextlib.asynccontextmanager
+    async def lifespan(_: FastAPI) -> AsyncIterator[None]:
+        task: asyncio.Task[None] | None = None
+        if settings.media_cleanup_interval_seconds > 0:
+            task = asyncio.create_task(_media_cleanup_loop(settings))
+        try:
+            yield
+        finally:
+            if task is not None:
+                task.cancel()
+                with contextlib.suppress(asyncio.CancelledError):
+                    await task
+
+    app = FastAPI(title="ePUB3 Book Builder", version="0.1.0", lifespan=lifespan)
 
     app.add_middleware(
         CORSMiddleware,

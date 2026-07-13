@@ -29,3 +29,9 @@ def get_media(book_id: str, media_id: str, service: MediaServiceDep) -> FileResp
 def delete_media(book_id: str, media_id: str, service: MediaServiceDep) -> None:
     # Datei löschen (z. B. verworfene KI-Generierung). Idempotent.
     service.delete(book_id, media_id)
+
+
+@router.post("/cleanup")
+def cleanup_media(book_id: str, service: MediaServiceDep) -> dict[str, list[str]]:
+    # Verwaiste (nicht referenzierte) Mediendateien dieses Buchs entfernen.
+    return {"removed": service.cleanup_orphans(book_id)}

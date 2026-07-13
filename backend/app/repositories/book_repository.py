@@ -45,6 +45,21 @@ class BookRepository:
                 return entry
         return None
 
+    def iter_media_files(self, book_id: str) -> list[Path]:
+        media_dir = self.media_dir(book_id)
+        if not media_dir.exists():
+            return []
+        return [entry for entry in media_dir.iterdir() if entry.is_file()]
+
+    def list_book_ids(self) -> list[str]:
+        if not self._books_dir.exists():
+            return []
+        return [
+            entry.name
+            for entry in self._books_dir.iterdir()
+            if (entry / "book.json").is_file()
+        ]
+
     # --- CRUD ------------------------------------------------------------
     def exists(self, book_id: str) -> bool:
         return self._book_json(book_id).exists()

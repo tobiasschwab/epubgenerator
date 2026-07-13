@@ -15,6 +15,13 @@ class Settings(BaseSettings):
     # Maximale Uploadgröße für Medien in Bytes (Default 50 MB).
     max_upload_bytes: int = 50 * 1024 * 1024
 
+    # --- Medien-Aufräumen (verwaiste, nicht referenzierte Dateien) ---
+    # Intervall des periodischen Cleanups in Sekunden (0 => deaktiviert).
+    media_cleanup_interval_seconds: int = 1800
+    # Nur Dateien löschen, die älter als diese Karenzzeit sind — schützt
+    # frisch generierte, noch nicht bestätigte KI-Medien vor dem Löschen.
+    media_cleanup_grace_seconds: int = 3600
+
     # --- KI (Google Gemini) ---
     # Leerer Key => KI-Funktionen sind deaktiviert (App läuft trotzdem).
     gemini_api_key: str = ""

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import mimetypes
 import os
+import time
 from pathlib import Path
 
 from app.config import Settings
@@ -65,6 +66,44 @@ class MediaService:
     def delete(self, book_id: str, media_id: str) -> None:
         """Mediendatei löschen (z. B. verworfene KI-Generierung)."""
         self._repo.delete_media_file(book_id, media_id)
+
+    def cleanup_orphans(self, book_id: str, grace_seconds: int | None = None) -> list[str]:
+        """Nicht referenzierte Mediendateien eines Buchs entfernen.
+
+        Dateien innerhalb der Karenzzeit (mtime) werden verschont, damit frisch
+        generierte, noch nicht bestätigte KI-Medien nicht gelöscht werden.
+        """
+        if not self._repo.exists(book_id):
+            return []
+        grace = (
+            grace_seconds
+            if grace_seconds is not None
+            else self._settings.media_cleanup_grace_seconds
+        )
+        book = self._repo.get(book_id)
+        referenced = {
+            ref.id
+            for chapter in book.chapters
+            for page in chapter.pages
+            for ref in page.media
+        }
+        now = time.time()
+        removed: list[str] = []
+        for path in self._repo.iter_media_files(book_id):
+            if path.stem in referenced:
+                continue
+            if grace > 0 and (now - path.stat().st_mtime) < grace:
+                continue
+            path.unlink(missing_ok=True)
+            removed.append(path.stem)
+        return removed
+
+    def cleanup_all(self, grace_seconds: int | None = None) -> int:
+        """Cleanup über alle Bücher (für den periodischen Hintergrund-Task)."""
+        total = 0
+        for book_id in self._repo.list_book_ids():
+            total += len(self.cleanup_orphans(book_id, grace_seconds))
+        return total
 
     def resolve_path(self, book_id: str, media_id: str) -> Path:
         path = self._repo.find_media_file(book_id, media_id)
