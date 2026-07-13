@@ -30,14 +30,14 @@ class PageService:
         chapter = find_chapter(book, chapter_id)
         page = find_page(chapter, page_id)
 
-        # Ersetzte/entfernte Medien physisch aufräumen (Orphans vermeiden).
-        for old, new in ((page.image, data.image), (page.audio, data.audio)):
-            if old is not None and (new is None or new.id != old.id):
-                self._repo.delete_media_file(book_id, old.id)
+        # Entfernte Medien physisch aufräumen (Orphans vermeiden).
+        new_ids = {ref.id for ref in data.media}
+        for ref in page.media:
+            if ref.id not in new_ids:
+                self._repo.delete_media_file(book_id, ref.id)
 
         page.text = data.text
-        page.image = data.image
-        page.audio = data.audio
+        page.media = data.media
         self._repo.save(book)
         return page
 

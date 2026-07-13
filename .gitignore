@@ -21,3 +21,6 @@ backend/app/static/
 .env.local
 .DS_Store
 *.log
+
+# TS incremental build info
+frontend/tsconfig.tsbuildinfo

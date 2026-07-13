@@ -11,7 +11,21 @@ mit Live-Vorschau und Export als EPUB3 und PDF. Single-User, keine Datenbank
   zentrale Rendering-Schicht (`app/rendering`) speist Vorschau **und** beide
   Exporte — kein doppeltes Layout.
 - **Frontend** (`frontend/`): Vite · React 18 · TypeScript · TanStack Query ·
-  Tailwind · TipTap (Editor) · dnd-kit (Reorder) · Zod.
+  Tailwind · **shadcn/ui** (Radix + CVA) · TipTap (Editor) · dnd-kit (Reorder) ·
+  **epub.js** (E-Reader-Vorschau) · Zod.
+
+## Vorschau-Modi
+
+- **HTML**: Server-Vorschau über dieselbe Pipeline wie der Export (iframe-isoliert).
+- **E-Reader**: das exportierte EPUB, mit **epub.js** paginiert wie in einem
+  E-Reader gerendert.
+
+## Medien pro Seite
+
+Jede Seite trägt eine **geordnete, gemischte Medienliste** — beliebig viele
+Bilder *und* Audiodateien, per Drag-&-Drop sortierbar. Reihenfolge und Mischung
+werden in Vorschau, EPUB und PDF identisch übernommen (Audio im PDF als
+Hinweisblock).
 
 ## Schnellstart (Docker Compose)
 
@@ -44,10 +58,17 @@ cd backend && pytest
 cd frontend && npm run test
 ```
 
-## Bestätigte Defaults (CLAUDE.md §11)
+## Entscheidungen (CLAUDE.md §11) & Erweiterungen
 
 Umgesetzt sind die dort vorgeschlagenen Defaults: Stack ohne DB, WeasyPrint für
 PDF, Audio im PDF als Hinweisblock, Rich-Text (TipTap) für Seitentext,
-Live-HTML-Vorschau, je ein Bild/Audio pro Seite, kapitelübergreifendes
-Verschieben, EPUB-Audio als eingebettetes `<audio>` (ohne SMIL). shadcn/ui ist
-als schlanke, selbst gepflegte UI-Primitives-Schicht (`components/ui`) umgesetzt.
+kapitelübergreifendes Verschieben, EPUB-Audio als eingebettetes `<audio>`
+(ohne SMIL).
+
+Auf Wunsch erweitert:
+
+- **echtes shadcn/ui** (Radix-Primitives + class-variance-authority, CSS-Variablen-
+  Theme mit Light/Dark) statt einer eigenen UI-Schicht.
+- **epub.js** als zusätzlicher E-Reader-Vorschaumodus neben der Live-HTML-Vorschau.
+- **mehrere und gemischte Medien pro Seite** (geordnete Liste, Bilder + Audio),
+  statt je einem Bild/Audio.

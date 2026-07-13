@@ -84,8 +84,8 @@ export function PageList({ chapter, selectedPageId, onSelect, mutations }: Props
                   >
                     <span className="text-muted-foreground">{index + 1}.</span>{" "}
                     {excerpt(page.text)}
-                    {page.image && " 🖼"}
-                    {page.audio && " 🔊"}
+                    {page.media.some((m) => m.kind === "image") && " 🖼"}
+                    {page.media.some((m) => m.kind === "audio") && " 🔊"}
                   </button>
                   <Button
                     size="sm"

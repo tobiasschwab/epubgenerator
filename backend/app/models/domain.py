@@ -28,8 +28,8 @@ class MediaRef(BaseModel):
 class Page(BaseModel):
     id: str = Field(default_factory=new_id)
     text: str = ""  # HTML-Fragment aus dem Rich-Text-Editor
-    image: MediaRef | None = None
-    audio: MediaRef | None = None
+    # Geordnete, gemischte Medienliste (Bilder und Audio, mehrere pro Seite).
+    media: list[MediaRef] = Field(default_factory=list)
 
 
 class Chapter(BaseModel):

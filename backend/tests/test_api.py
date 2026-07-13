@@ -64,9 +64,9 @@ def test_media_upload_and_page_attach(client) -> None:
 
     updated = client.put(
         f"/api/books/{book_id}/chapters/{chap_id}/pages/{page['id']}",
-        json={"text": "<p>x</p>", "image": ref, "audio": None},
+        json={"text": "<p>x</p>", "media": [ref]},
     ).json()
-    assert updated["image"]["id"] == ref["id"]
+    assert updated["media"][0]["id"] == ref["id"]
 
     media = client.get(f"/api/books/{book_id}/media/{ref['id']}")
     assert media.status_code == 200

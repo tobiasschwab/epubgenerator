@@ -19,13 +19,11 @@ export function usePageMutations(bookId: string) {
         chapterId: string;
         pageId: string;
         text: string;
-        image: MediaRef | null;
-        audio: MediaRef | null;
+        media: MediaRef[];
       }) =>
         api.updatePage(bookId, v.chapterId, v.pageId, {
           text: v.text,
-          image: v.image,
-          audio: v.audio,
+          media: v.media,
         }),
       onSuccess: invalidate,
     }),

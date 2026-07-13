@@ -27,22 +27,30 @@ def test_normalize_empty() -> None:
     assert normalize_fragment("   ") == ""
 
 
-def test_render_page_with_image_and_audio() -> None:
+def test_render_page_with_multiple_mixed_media() -> None:
     page = Page(
         text="<p>Text</p>",
-        image=MediaRef(id="img1", filename="a.png", mime="image/png", kind=MediaKind.image),
-        audio=MediaRef(id="aud1", filename="a.mp3", mime="audio/mpeg", kind=MediaKind.audio),
+        media=[
+            MediaRef(id="img1", filename="a.png", mime="image/png", kind=MediaKind.image),
+            MediaRef(id="aud1", filename="a.mp3", mime="audio/mpeg", kind=MediaKind.audio),
+            MediaRef(id="img2", filename="b.png", mime="image/png", kind=MediaKind.image),
+        ],
     )
     out = render_page_fragment(page, lambda ref: f"/media/{ref.id}")
     assert 'src="/media/img1"' in out
+    assert 'src="/media/img2"' in out
     assert "<audio" in out
     assert 'src="/media/aud1"' in out
+    # Reihenfolge bleibt erhalten (img1 vor aud1 vor img2).
+    assert out.index("/media/img1") < out.index("/media/aud1") < out.index("/media/img2")
 
 
 def test_render_page_audio_placeholder() -> None:
     page = Page(
         text="<p>x</p>",
-        audio=MediaRef(id="a", filename="klang.mp3", mime="audio/mpeg", kind=MediaKind.audio),
+        media=[
+            MediaRef(id="a", filename="klang.mp3", mime="audio/mpeg", kind=MediaKind.audio)
+        ],
     )
     out = render_page_fragment(page, lambda ref: "", audio_placeholder=True)
     assert "audio-placeholder" in out

@@ -3,7 +3,8 @@ import { Link, useParams } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Input, Textarea } from "@/components/ui/input";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { ChapterList } from "@/features/chapters/ChapterList";
 import { useChapterMutations } from "@/features/chapters/hooks";
 import { PageEditor } from "@/features/pages/PageEditor";

@@ -136,17 +136,18 @@ def render_page_fragment(
     *,
     audio_placeholder: bool = False,
 ) -> str:
-    """Rendert eine Seite als XHTML-Fragment (Text + optional Bild/Audio)."""
+    """Rendert eine Seite als XHTML-Fragment (Text + geordnete, gemischte Medien)."""
     parts: list[str] = ['<section class="page">']
     text = normalize_fragment(page.text)
     parts.append(f'<div class="page-text">{text}</div>')
-    if page.image is not None and page.image.kind == MediaKind.image:
-        parts.append(_image_html(page.image, resolver))
-    if page.audio is not None and page.audio.kind == MediaKind.audio:
-        if audio_placeholder:
-            parts.append(_audio_placeholder_html(page.audio))
-        else:
-            parts.append(_audio_html(page.audio, resolver))
+    for ref in page.media:
+        if ref.kind == MediaKind.image:
+            parts.append(_image_html(ref, resolver))
+        elif ref.kind == MediaKind.audio:
+            if audio_placeholder:
+                parts.append(_audio_placeholder_html(ref))
+            else:
+                parts.append(_audio_html(ref, resolver))
     parts.append("</section>")
     return "".join(parts)
 

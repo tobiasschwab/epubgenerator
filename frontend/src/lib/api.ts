@@ -103,7 +103,7 @@ export const api = {
     bookId: string,
     chapterId: string,
     pageId: string,
-    data: { text: string; image: MediaRef | null; audio: MediaRef | null },
+    data: { text: string; media: MediaRef[] },
   ): Promise<Page> =>
     request(`/books/${bookId}/chapters/${chapterId}/pages/${pageId}`, pageSchema, {
       method: "PUT",

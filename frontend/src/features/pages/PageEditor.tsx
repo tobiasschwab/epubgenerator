@@ -1,7 +1,18 @@
+import {
+  closestCenter,
+  DndContext,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import { arrayMove, SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import { ImagePlus, Music } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 
+import { SortableItem } from "@/components/SortableItem";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { api } from "@/lib/api";
 import type { Chapter, MediaRef, Page } from "@/lib/schemas";
 
@@ -17,139 +28,168 @@ interface Props {
 
 export function PageEditor({ bookId, chapter, page, mutations }: Props) {
   const [text, setText] = useState(page.text);
+  const [media, setMedia] = useState<MediaRef[]>(page.media);
   const [error, setError] = useState<string | null>(null);
-  const imageInput = useRef<HTMLInputElement>(null);
-  const audioInput = useRef<HTMLInputElement>(null);
+  const fileInput = useRef<HTMLInputElement>(null);
 
-  // Bei Seitenwechsel lokalen Textzustand zurücksetzen.
-  useEffect(() => setText(page.text), [page.id, page.text]);
+  // Bei Seitenwechsel lokalen Zustand zurücksetzen.
+  useEffect(() => {
+    setText(page.text);
+    setMedia(page.media);
+  }, [page.id]);
 
-  const dirty = text !== page.text;
+  const sensors = useSensors(useSensor(PointerSensor));
+  const textDirty = text !== page.text;
 
-  const save = (overrides?: { image?: MediaRef | null; audio?: MediaRef | null }) =>
+  const persist = (nextText: string, nextMedia: MediaRef[]) =>
     mutations.update.mutate({
       chapterId: chapter.id,
       pageId: page.id,
-      text,
-      image: overrides?.image !== undefined ? overrides.image : page.image ?? null,
-      audio: overrides?.audio !== undefined ? overrides.audio : page.audio ?? null,
+      text: nextText,
+      media: nextMedia,
     });
 
-  const handleUpload = async (
-    file: File | undefined,
-    kind: "image" | "audio",
-  ) => {
-    if (!file) return;
+  const setAndPersistMedia = (nextMedia: MediaRef[]) => {
+    setMedia(nextMedia);
+    persist(text, nextMedia);
+  };
+
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || files.length === 0) return;
     setError(null);
     try {
-      const ref = await mutations.upload.mutateAsync(file);
-      if (ref.kind !== kind) {
-        setError(`Erwartet ${kind}, erhalten ${ref.kind}.`);
-        return;
-      }
-      save(kind === "image" ? { image: ref } : { audio: ref });
+      const uploaded = await Promise.all(
+        Array.from(files).map((file) => mutations.upload.mutateAsync(file)),
+      );
+      setAndPersistMedia([...media, ...uploaded]);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Upload fehlgeschlagen");
     }
   };
 
+  const removeMedia = (id: string) =>
+    setAndPersistMedia(media.filter((m) => m.id !== id));
+
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const from = media.findIndex((m) => m.id === active.id);
+    const to = media.findIndex((m) => m.id === over.id);
+    if (from >= 0 && to >= 0) setAndPersistMedia(arrayMove(media, from, to));
+  };
+
   return (
-    <Card className="p-4 space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold">Seite bearbeiten</h3>
-        <Button size="sm" disabled={!dirty || mutations.update.isPending} onClick={() => save()}>
-          {mutations.update.isPending ? "Speichern…" : dirty ? "Speichern" : "Gespeichert"}
+    <Card>
+      <CardHeader className="flex-row items-center justify-between space-y-0">
+        <CardTitle>Seite bearbeiten</CardTitle>
+        <Button
+          size="sm"
+          disabled={!textDirty || mutations.update.isPending}
+          onClick={() => persist(text, media)}
+        >
+          {mutations.update.isPending
+            ? "Speichern…"
+            : textDirty
+              ? "Text speichern"
+              : "Gespeichert"}
         </Button>
-      </div>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <RichTextEditor value={text} onChange={setText} />
 
-      <RichTextEditor value={text} onChange={setText} />
+        {error && <p className="text-sm text-destructive">{error}</p>}
 
-      {error && <p className="text-sm text-destructive">{error}</p>}
+        <div className="space-y-2">
+          <div className="flex items-center justify-between">
+            <span className="text-sm font-medium">
+              Medien{" "}
+              <span className="text-muted-foreground">({media.length})</span>
+            </span>
+            <Button
+              size="sm"
+              variant="secondary"
+              disabled={mutations.upload.isPending}
+              onClick={() => fileInput.current?.click()}
+            >
+              <ImagePlus /> Medien hinzufügen
+            </Button>
+            <input
+              ref={fileInput}
+              type="file"
+              accept="image/*,audio/*"
+              multiple
+              className="hidden"
+              onChange={(e) => {
+                void handleFiles(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <MediaSlot
-          label="Bild"
-          accept="image/*"
-          inputRef={imageInput}
-          onSelect={(f) => handleUpload(f, "image")}
-          current={page.image ?? null}
-          preview={
-            page.image ? (
-              <img
-                src={api.mediaUrl(bookId, page.image.id)}
-                alt={page.image.filename}
-                className="max-h-40 rounded border border-border"
-              />
-            ) : null
-          }
-          onRemove={() => save({ image: null })}
-        />
-        <MediaSlot
-          label="Audio"
-          accept="audio/*"
-          inputRef={audioInput}
-          onSelect={(f) => handleUpload(f, "audio")}
-          current={page.audio ?? null}
-          preview={
-            page.audio ? (
-              <audio
-                controls
-                src={api.mediaUrl(bookId, page.audio.id)}
-                className="w-full"
-              />
-            ) : null
-          }
-          onRemove={() => save({ audio: null })}
-        />
-      </div>
+          {media.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              Noch keine Medien. Bilder und Audio lassen sich mischen und per
+              Ziehen sortieren.
+            </p>
+          ) : (
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onDragEnd}
+            >
+              <SortableContext
+                items={media.map((m) => m.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="space-y-2">
+                  {media.map((ref) => (
+                    <SortableItem key={ref.id} id={ref.id}>
+                      <MediaCard
+                        bookId={bookId}
+                        media={ref}
+                        onRemove={() => removeMedia(ref.id)}
+                      />
+                    </SortableItem>
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          )}
+        </div>
+      </CardContent>
     </Card>
   );
 }
 
-function MediaSlot({
-  label,
-  accept,
-  inputRef,
-  onSelect,
-  current,
-  preview,
+function MediaCard({
+  bookId,
+  media,
   onRemove,
 }: {
-  label: string;
-  accept: string;
-  inputRef: React.RefObject<HTMLInputElement>;
-  onSelect: (file: File | undefined) => void;
-  current: MediaRef | null;
-  preview: React.ReactNode;
+  bookId: string;
+  media: MediaRef;
   onRemove: () => void;
 }) {
+  const url = api.mediaUrl(bookId, media.id);
   return (
-    <div className="space-y-2 rounded-md border border-border p-3">
-      <div className="flex items-center justify-between">
-        <span className="text-sm font-medium">{label}</span>
-        <div className="flex gap-2">
-          <Button size="sm" variant="secondary" onClick={() => inputRef.current?.click()}>
-            {current ? "Ersetzen" : "Hochladen"}
-          </Button>
-          {current && (
-            <Button size="sm" variant="ghost" onClick={onRemove}>
-              Entfernen
-            </Button>
-          )}
-        </div>
+    <div className="flex items-center gap-3 rounded-md border p-2">
+      <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded bg-muted">
+        {media.kind === "image" ? (
+          <img src={url} alt={media.filename} className="h-full w-full object-cover" />
+        ) : (
+          <Music className="h-6 w-6 text-muted-foreground" />
+        )}
       </div>
-      {preview}
-      {current && <p className="text-xs text-muted-foreground">{current.filename}</p>}
-      <input
-        ref={inputRef}
-        type="file"
-        accept={accept}
-        className="hidden"
-        onChange={(e) => {
-          onSelect(e.target.files?.[0]);
-          e.target.value = "";
-        }}
-      />
+      <div className="min-w-0 flex-1">
+        <p className="truncate text-sm font-medium">{media.filename}</p>
+        <p className="text-xs text-muted-foreground">{media.kind}</p>
+        {media.kind === "audio" && (
+          <audio controls src={url} className="mt-1 h-8 w-full" />
+        )}
+      </div>
+      <Button size="sm" variant="ghost" onClick={onRemove}>
+        Entfernen
+      </Button>
     </div>
   );
 }

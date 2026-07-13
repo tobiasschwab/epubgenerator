@@ -71,10 +71,9 @@ def build_epub(book: Book, media_loader: MediaLoader) -> bytes:
     for c_index, chapter in enumerate(book.chapters):
         page_links: list[epub.Link] = []
         for p_index, page in enumerate(chapter.pages):
-            if page.image and page.image.kind == MediaKind.image:
-                embed_media(page.image)
-            if page.audio and page.audio.kind == MediaKind.audio:
-                embed_media(page.audio)
+            for ref in page.media:
+                if ref.kind in (MediaKind.image, MediaKind.audio):
+                    embed_media(ref)
 
             file_name = f"chap_{c_index}_page_{p_index}.xhtml"
             fragment = render_page_fragment(page, resolver)

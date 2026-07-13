@@ -14,8 +14,8 @@ export const mediaRefSchema = z.object({
 export const pageSchema = z.object({
   id: z.string(),
   text: z.string(),
-  image: mediaRefSchema.nullable().optional(),
-  audio: mediaRefSchema.nullable().optional(),
+  // Geordnete, gemischte Medienliste (mehrere Bilder/Audio pro Seite).
+  media: z.array(mediaRefSchema),
 });
 
 export const chapterSchema = z.object({

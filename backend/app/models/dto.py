@@ -28,11 +28,10 @@ class PageCreate(BaseModel):
 
 
 class PageUpdate(BaseModel):
-    """PUT ersetzt den Seitenzustand vollständig (Text + Medienzuordnung)."""
+    """PUT ersetzt den Seitenzustand vollständig (Text + geordnete Medienliste)."""
 
     text: str = ""
-    image: MediaRef | None = None
-    audio: MediaRef | None = None
+    media: list[MediaRef] = Field(default_factory=list)
 
 
 class MovePosition(BaseModel):

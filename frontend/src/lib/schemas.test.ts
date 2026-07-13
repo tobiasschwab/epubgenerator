@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { bookSchema, bookSummaryListSchema, pageSchema } from "./schemas";
 
 describe("schemas", () => {
-  it("validiert ein vollständiges Buch", () => {
+  it("validiert ein vollständiges Buch mit gemischten Medien", () => {
     const book = bookSchema.parse({
       id: "b1",
       title: "T",
@@ -12,16 +12,25 @@ describe("schemas", () => {
         {
           id: "c1",
           title: "K",
-          pages: [{ id: "p1", text: "<p>x</p>", image: null, audio: null }],
+          pages: [
+            {
+              id: "p1",
+              text: "<p>x</p>",
+              media: [
+                { id: "m1", filename: "a.png", mime: "image/png", kind: "image" },
+                { id: "m2", filename: "a.mp3", mime: "audio/mpeg", kind: "audio" },
+              ],
+            },
+          ],
         },
       ],
     });
-    expect(book.chapters[0].pages[0].id).toBe("p1");
+    expect(book.chapters[0].pages[0].media).toHaveLength(2);
   });
 
-  it("erlaubt fehlende Medienfelder", () => {
-    const page = pageSchema.parse({ id: "p", text: "" });
-    expect(page.image).toBeUndefined();
+  it("akzeptiert eine leere Medienliste", () => {
+    const page = pageSchema.parse({ id: "p", text: "", media: [] });
+    expect(page.media).toEqual([]);
   });
 
   it("validiert die Bücherliste", () => {
@@ -36,7 +45,7 @@ describe("schemas", () => {
       pageSchema.parse({
         id: "p",
         text: "",
-        image: { id: "m", filename: "f", mime: "x", kind: "video" },
+        media: [{ id: "m", filename: "f", mime: "x", kind: "video" }],
       }),
     ).toThrow();
   });
