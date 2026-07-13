@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from fastapi import APIRouter, File, UploadFile
+from fastapi import APIRouter, File, UploadFile, status
 from fastapi.responses import FileResponse
 
 from app.api.deps import MediaServiceDep
@@ -23,3 +23,9 @@ async def upload_media(
 def get_media(book_id: str, media_id: str, service: MediaServiceDep) -> FileResponse:
     path = service.resolve_path(book_id, media_id)
     return FileResponse(path, media_type=service.guess_media_type(path))
+
+
+@router.delete("/{media_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_media(book_id: str, media_id: str, service: MediaServiceDep) -> None:
+    # Datei löschen (z. B. verworfene KI-Generierung). Idempotent.
+    service.delete(book_id, media_id)

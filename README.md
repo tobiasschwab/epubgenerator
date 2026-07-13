@@ -20,6 +20,26 @@ mit Live-Vorschau und Export als EPUB3 und PDF. Single-User, keine Datenbank
 - **E-Reader**: das exportierte EPUB, mit **epub.js** paginiert wie in einem
   E-Reader gerendert.
 
+## KI-Integration (Google Gemini)
+
+Optional, aktiviert sobald ein `EPUB_GEMINI_API_KEY` gesetzt ist (sonst sind die
+KI-Buttons ausgeblendet, die App läuft normal weiter). Alle Gemini-Aufrufe
+liegen hinter einem Gateway (`app/services/gemini_gateway.py`) und sind ohne
+Netzzugriff testbar.
+
+- **Buch/Kapitel/Seite per Prompt**: Gemini liefert über *structured output*
+  (`response_schema`) ein JSON, das 1:1 dem Domänenmodell entspricht
+  (Buch → Kapitel → Seiten mit HTML-Text). Ablauf: **Vorschau → bestätigen →
+  speichern**. Bei einem Buch werden Kapitel und Seiten gleich mit angelegt.
+- **Bildgenerierung** pro Seite (Button): Beschreibung im Popup, mit dem
+  Seitentext vorbelegt; Ergebnis wird als Vorschau gezeigt und auf Wunsch als
+  Bild an die (gemischte) Medienliste der Seite gehängt.
+- **Audiogenerierung** pro Seite (Button): TTS aus dem Seitentext, als WAV in
+  die Medienliste.
+
+Modelle (überschreibbar via Env): Text `gemini-2.5-flash`, Bild
+`gemini-2.5-flash-image`, TTS `gemini-2.5-flash-preview-tts`.
+
 ## Medien pro Seite
 
 Jede Seite trägt eine **geordnete, gemischte Medienliste** — beliebig viele

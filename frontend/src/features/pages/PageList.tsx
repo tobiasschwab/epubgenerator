@@ -11,14 +11,20 @@ import {
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
 
+import { useQueryClient } from "@tanstack/react-query";
+
 import { SortableItem } from "@/components/SortableItem";
 import { Button } from "@/components/ui/button";
+import { GenerateContentDialog } from "@/features/ai/GenerateContentDialog";
+import { useAiStatus } from "@/features/ai/hooks";
+import { queryKeys } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import type { Chapter } from "@/lib/schemas";
 
 import { usePageMutations } from "./hooks";
 
 interface Props {
+  bookId: string;
   chapter: Chapter;
   selectedPageId: string | null;
   onSelect: (id: string) => void;
@@ -31,8 +37,10 @@ function excerpt(html: string): string {
   return text.slice(0, 40) || "(leer)";
 }
 
-export function PageList({ chapter, selectedPageId, onSelect, mutations }: Props) {
+export function PageList({ bookId, chapter, selectedPageId, onSelect, mutations }: Props) {
   const sensors = useSensors(useSensor(PointerSensor));
+  const aiStatus = useAiStatus();
+  const qc = useQueryClient();
 
   const onDragEnd = (event: DragEndEvent) => {
     const { active, over } = event;
@@ -52,16 +60,26 @@ export function PageList({ chapter, selectedPageId, onSelect, mutations }: Props
     <div className="space-y-2">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">Seiten</h3>
-        <Button
-          size="sm"
-          onClick={() =>
-            mutations.create.mutate(chapter.id, {
-              onSuccess: (page) => onSelect(page.id),
-            })
-          }
-        >
-          + Seite
-        </Button>
+        <div className="flex gap-2">
+          {aiStatus.data?.available && (
+            <GenerateContentDialog
+              scope="page"
+              bookId={bookId}
+              chapterId={chapter.id}
+              onDone={() => qc.invalidateQueries({ queryKey: queryKeys.book(bookId) })}
+            />
+          )}
+          <Button
+            size="sm"
+            onClick={() =>
+              mutations.create.mutate(chapter.id, {
+                onSuccess: (page) => onSelect(page.id),
+              })
+            }
+          >
+            + Seite
+          </Button>
+        </div>
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>

@@ -1,16 +1,23 @@
 import { z } from "zod";
 
 import {
+  aiStatusSchema,
+  bookDraftSchema,
   bookSchema,
   bookSummaryListSchema,
+  chapterDraftSchema,
   chapterSchema,
   mediaRefSchema,
+  pageDraftSchema,
   pageSchema,
   type Book,
+  type BookDraft,
   type BookSummary,
   type Chapter,
+  type ChapterDraft,
   type MediaRef,
   type Page,
+  type PageDraft,
 } from "./schemas";
 
 export class ApiError extends Error {
@@ -153,8 +160,77 @@ export const api = {
   },
   mediaUrl: (bookId: string, mediaId: string): string =>
     `/api/books/${bookId}/media/${mediaId}`,
+  deleteMedia: (bookId: string, mediaId: string): Promise<void> =>
+    requestVoid(`/books/${bookId}/media/${mediaId}`, { method: "DELETE" }),
 
   // --- Export ---
   exportUrl: (bookId: string, format: "epub" | "pdf"): string =>
     `/api/books/${bookId}/export/${format}`,
+
+  // --- KI (Google Gemini) ---
+  ai: {
+    status: (): Promise<{ available: boolean }> =>
+      request("/ai/status", aiStatusSchema),
+    generateBook: (data: {
+      prompt: string;
+      language: string;
+      chapter_count?: number | null;
+      pages_per_chapter?: number | null;
+    }): Promise<BookDraft> =>
+      request("/ai/generate/book", bookDraftSchema, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    generateChapter: (data: {
+      prompt: string;
+      language: string;
+      page_count?: number | null;
+    }): Promise<ChapterDraft> =>
+      request("/ai/generate/chapter", chapterDraftSchema, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    generatePage: (data: { prompt: string; language: string }): Promise<PageDraft> =>
+      request("/ai/generate/page", pageDraftSchema, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
+    commitBook: (draft: BookDraft): Promise<Book> =>
+      request("/ai/books", bookSchema, {
+        method: "POST",
+        body: JSON.stringify(draft),
+      }),
+    commitChapter: (bookId: string, draft: ChapterDraft): Promise<Chapter> =>
+      request(`/ai/books/${bookId}/chapters`, chapterSchema, {
+        method: "POST",
+        body: JSON.stringify(draft),
+      }),
+    commitPage: (bookId: string, chapterId: string, draft: PageDraft): Promise<Page> =>
+      request(`/ai/books/${bookId}/chapters/${chapterId}/pages`, pageSchema, {
+        method: "POST",
+        body: JSON.stringify(draft),
+      }),
+    generateImage: (
+      bookId: string,
+      chapterId: string,
+      pageId: string,
+      prompt: string,
+    ): Promise<MediaRef> =>
+      request(
+        `/ai/books/${bookId}/chapters/${chapterId}/pages/${pageId}/image`,
+        mediaRefSchema,
+        { method: "POST", body: JSON.stringify({ prompt }) },
+      ),
+    generateAudio: (
+      bookId: string,
+      chapterId: string,
+      pageId: string,
+      voice?: string,
+    ): Promise<MediaRef> =>
+      request(
+        `/ai/books/${bookId}/chapters/${chapterId}/pages/${pageId}/audio`,
+        mediaRefSchema,
+        { method: "POST", body: JSON.stringify({ voice: voice ?? null }) },
+      ),
+  },
 };

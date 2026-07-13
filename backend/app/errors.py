@@ -25,3 +25,10 @@ class ValidationError(DomainError):
 class ConflictError(DomainError):
     code = "conflict"
     status_code = 409
+
+
+class AIUnavailableError(DomainError):
+    """KI ist nicht konfiguriert (kein API-Key) oder der Anbieter schlug fehl."""
+
+    code = "ai_unavailable"
+    status_code = 503

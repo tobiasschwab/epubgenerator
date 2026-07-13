@@ -1,10 +1,12 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { GenerateBookDialog } from "@/features/ai/GenerateBookDialog";
+import { useAiStatus } from "@/features/ai/hooks";
 
 import { useBooks, useCreateBook, useDeleteBook } from "./hooks";
 
@@ -12,6 +14,8 @@ export function BooksListPage() {
   const { data: books, isLoading, isError } = useBooks();
   const createBook = useCreateBook();
   const deleteBook = useDeleteBook();
+  const aiStatus = useAiStatus();
+  const navigate = useNavigate();
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
 
@@ -31,10 +35,23 @@ export function BooksListPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-8 p-6">
-      <header>
-        <h1 className="text-3xl font-bold">Meine Bücher</h1>
-        <p className="text-muted-foreground">EPUB3-Bücher erstellen und exportieren.</p>
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Meine Bücher</h1>
+          <p className="text-muted-foreground">
+            EPUB3-Bücher erstellen und exportieren.
+          </p>
+        </div>
+        <GenerateBookDialog
+          disabled={!aiStatus.data?.available}
+          onCreated={(book) => navigate(`/books/${book.id}`)}
+        />
       </header>
+      {aiStatus.data && !aiStatus.data.available && (
+        <p className="text-xs text-muted-foreground">
+          KI-Funktionen sind deaktiviert (kein GEMINI_API_KEY auf dem Server gesetzt).
+        </p>
+      )}
 
       <Card className="p-4">
         <form onSubmit={submit} className="space-y-3">

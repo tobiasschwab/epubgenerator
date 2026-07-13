@@ -12,11 +12,15 @@ import {
   sortableKeyboardCoordinates,
   verticalListSortingStrategy,
 } from "@dnd-kit/sortable";
+import { useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 
 import { SortableItem } from "@/components/SortableItem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { GenerateContentDialog } from "@/features/ai/GenerateContentDialog";
+import { useAiStatus } from "@/features/ai/hooks";
+import { queryKeys } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 import type { Chapter } from "@/lib/schemas";
 
@@ -34,6 +38,8 @@ export function ChapterList({ bookId, chapters, selectedId, onSelect, mutations 
   const [newTitle, setNewTitle] = useState("");
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  const aiStatus = useAiStatus();
+  const qc = useQueryClient();
 
   const sensors = useSensors(
     useSensor(PointerSensor),
@@ -53,6 +59,13 @@ export function ChapterList({ bookId, chapters, selectedId, onSelect, mutations 
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <h2 className="font-semibold">Kapitel</h2>
+        {aiStatus.data?.available && (
+          <GenerateContentDialog
+            scope="chapter"
+            bookId={bookId}
+            onDone={() => qc.invalidateQueries({ queryKey: queryKeys.book(bookId) })}
+          />
+        )}
       </div>
 
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>

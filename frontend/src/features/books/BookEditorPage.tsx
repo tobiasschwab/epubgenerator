@@ -102,6 +102,7 @@ export function BookEditorPage() {
         <Card className="p-4">
           {chapter ? (
             <PageList
+              bookId={bookId}
               chapter={chapter}
               selectedPageId={page?.id ?? null}
               onSelect={setSelectedPageId}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import mimetypes
 import os
 from pathlib import Path
 
@@ -49,6 +50,21 @@ class MediaService:
         ref = MediaRef(filename=filename or f"media{ext}", mime=mime, kind=kind)
         self._repo.write_media(book_id, ref.id, ext, data)
         return ref
+
+    def store_generated(
+        self, book_id: str, filename: str, mime: str, data: bytes, kind: MediaKind
+    ) -> MediaRef:
+        """Serverseitig erzeugte Medien (KI) ablegen und als MediaRef zurückgeben."""
+        ext = {**_IMAGE_MIME, **_AUDIO_MIME}.get(mime.lower())
+        if ext is None:
+            ext = mimetypes.guess_extension(mime) or ""
+        ref = MediaRef(filename=filename, mime=mime, kind=kind)
+        self._repo.write_media(book_id, ref.id, ext, data)
+        return ref
+
+    def delete(self, book_id: str, media_id: str) -> None:
+        """Mediendatei löschen (z. B. verworfene KI-Generierung)."""
+        self._repo.delete_media_file(book_id, media_id)
 
     def resolve_path(self, book_id: str, media_id: str) -> Path:
         path = self._repo.find_media_file(book_id, media_id)

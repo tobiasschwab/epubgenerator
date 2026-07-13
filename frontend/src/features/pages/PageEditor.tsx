@@ -13,6 +13,8 @@ import { useEffect, useRef, useState } from "react";
 import { SortableItem } from "@/components/SortableItem";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { PageAiMedia } from "@/features/ai/PageAiMedia";
+import { useAiStatus } from "@/features/ai/hooks";
 import { api } from "@/lib/api";
 import type { Chapter, MediaRef, Page } from "@/lib/schemas";
 
@@ -31,6 +33,7 @@ export function PageEditor({ bookId, chapter, page, mutations }: Props) {
   const [media, setMedia] = useState<MediaRef[]>(page.media);
   const [error, setError] = useState<string | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
+  const aiStatus = useAiStatus();
 
   // Bei Seitenwechsel lokalen Zustand zurücksetzen.
   useEffect(() => {
@@ -105,14 +108,24 @@ export function PageEditor({ bookId, chapter, page, mutations }: Props) {
               Medien{" "}
               <span className="text-muted-foreground">({media.length})</span>
             </span>
-            <Button
-              size="sm"
-              variant="secondary"
-              disabled={mutations.upload.isPending}
-              onClick={() => fileInput.current?.click()}
-            >
-              <ImagePlus /> Medien hinzufügen
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {aiStatus.data?.available && (
+                <PageAiMedia
+                  bookId={bookId}
+                  chapter={chapter}
+                  page={page}
+                  onAttach={(ref) => setAndPersistMedia([...media, ref])}
+                />
+              )}
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={mutations.upload.isPending}
+                onClick={() => fileInput.current?.click()}
+              >
+                <ImagePlus /> Hochladen
+              </Button>
+            </div>
             <input
               ref={fileInput}
               type="file"

@@ -20,7 +20,7 @@ WORKDIR /app
 COPY pyproject.toml ./
 RUN uv pip install --system --no-cache \
     fastapi "uvicorn[standard]" "pydantic>=2.7" pydantic-settings \
-    python-multipart ebooklib weasyprint lxml
+    python-multipart ebooklib weasyprint lxml google-genai
 
 COPY app ./app
 

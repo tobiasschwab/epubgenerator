@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from app.api.routes import books, chapters, export, media, pages, preview
+from app.api.routes import ai, books, chapters, export, media, pages, preview
 from app.config import get_settings
 from app.errors import DomainError
 
@@ -37,6 +37,7 @@ def create_app() -> FastAPI:
     app.include_router(media.router)
     app.include_router(preview.router)
     app.include_router(export.router)
+    app.include_router(ai.router)
 
     @app.get("/api/health", tags=["health"])
     def health() -> dict[str, str]:

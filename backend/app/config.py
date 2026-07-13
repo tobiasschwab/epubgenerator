@@ -15,6 +15,18 @@ class Settings(BaseSettings):
     # Maximale Uploadgröße für Medien in Bytes (Default 50 MB).
     max_upload_bytes: int = 50 * 1024 * 1024
 
+    # --- KI (Google Gemini) ---
+    # Leerer Key => KI-Funktionen sind deaktiviert (App läuft trotzdem).
+    gemini_api_key: str = ""
+    gemini_text_model: str = "gemini-2.5-flash"
+    gemini_image_model: str = "gemini-2.5-flash-image"
+    gemini_tts_model: str = "gemini-2.5-flash-preview-tts"
+    gemini_tts_voice: str = "Kore"
+
+    @property
+    def ai_enabled(self) -> bool:
+        return bool(self.gemini_api_key)
+
     @property
     def books_dir(self) -> Path:
         return self.data_dir / "books"
