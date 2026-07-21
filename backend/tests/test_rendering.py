@@ -123,6 +123,42 @@ def test_annotation_pdf_mode_float_footnote() -> None:
     assert "noteref" not in out  # keine EPUB-Referenz im PDF-Modus
 
 
+_RICH = (
+    '<p>Wort <span class="annotation" data-note="'
+    "&lt;p&gt;&lt;strong&gt;一番&lt;/strong&gt; = am meisten&lt;/p&gt;"
+    "&lt;ul&gt;&lt;li&gt;怖い = gruselig&lt;/li&gt;&lt;/ul&gt;"
+    '">一番怖い</span>.</p>'
+)
+
+
+def test_annotation_rich_html_note_block_preserved() -> None:
+    # Interaktiv/EPUB: fett + Liste bleiben als Block-HTML erhalten.
+    page = Page(text=_RICH)
+    out = render_page_fragment(page, lambda r: "", annotation_mode=AnnotationMode.epub)
+    assert "<strong>一番</strong>" in out
+    assert "<li>怖い = gruselig</li>" in out
+
+
+def test_annotation_rich_html_note_flattened_for_pdf() -> None:
+    # PDF: Struktur flach (Liste → Aufzählungszeile), fett bleibt erhalten.
+    page = Page(text=_RICH)
+    out = render_page_fragment(page, lambda r: "", annotation_mode=AnnotationMode.pdf)
+    assert "<strong>一番</strong>" in out
+    assert "• 怖い = gruselig" in out
+    assert "<li>" not in out  # keine Block-Liste im PDF-Inline-Footnote
+
+
+def test_annotation_rich_html_note_sanitized() -> None:
+    # Script im Notiz-HTML wird entfernt.
+    evil = "&lt;script&gt;alert(1)&lt;/script&gt;&lt;strong&gt;ok&lt;/strong&gt;"
+    page = Page(
+        text=f'<p><span class="annotation" data-note="{evil}">x</span></p>'
+    )
+    out = render_page_fragment(page, lambda r: "", annotation_mode=AnnotationMode.epub)
+    assert "<script" not in out  # Tag entfernt (Inhalt bleibt als harmloser Text)
+    assert "<strong>ok</strong>" in out
+
+
 def test_annotation_numbering_continuous_across_pages() -> None:
     counter = new_counter()
     chapter = Chapter(

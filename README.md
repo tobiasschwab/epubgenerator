@@ -57,7 +57,8 @@ Netzzugriff testbar.
 überschreibbar). In jedem KI-Dialog lässt sich das Modell **pro Generierung**
 umstellen (z. B. günstigeres `gemini-3.1-flash-lite` für Text oder
 `gemini-3-pro-image` für beste Bilder); die letzte Wahl wird im Browser
-gemerkt. `GET /api/ai/models` liefert den Katalog samt Defaults.
+gemerkt. Zu jedem Modell zeigt die Auswahl einen **Kostenhinweis** (Richtwert,
+z. B. „~7 ct/Bild"). `GET /api/ai/models` liefert den Katalog samt Defaults.
 
 ## Erklärungen / Annotationen (klickbare Fußnoten)
 
@@ -69,11 +70,12 @@ erscheint — eine Quelle, drei Darstellungen:
   E-Readern als Tap-Popup.
 - **PDF:** Fußnote am Seitenende (`float: footnote`, WeasyPrint).
 
-Im Editor: Text markieren → **„Erklärung"** → Erklärungstext eingeben (oder per
-**„Mit KI erklären"** von Gemini erzeugen lassen — Wort-für-Wort, Grammatik,
-Übersetzung). Gespeichert wird inline als `<span class="annotation"
-data-note="…">`; die Rendering-Schicht wandelt das je Ziel um. Ideal z. B. für
-Sprachlern-Bücher.
+Im Editor: Text markieren → **„Erklärung"** → Erklärung als **Rich-Text**
+(fett, kursiv, Listen) eingeben — oder per **„Mit KI erklären"** von Gemini
+erzeugen lassen (Wort-für-Wort, Grammatik, Übersetzung). Gespeichert wird inline
+als `<span class="annotation" data-note="…">`; die Rendering-Schicht sanitisiert
+den Notiz-HTML und wandelt ihn je Ziel um (Rich-Text in Vorschau/EPUB, für
+PDF-Fußnoten inline geglättet). Ideal z. B. für Sprachlern-Bücher.
 
 ## Medien pro Seite
 

@@ -96,3 +96,9 @@
   background: hsl(222 47% 96%);
   cursor: help;
 }
+/* Kompakter Notiz-Editor im Erklärungs-Dialog. */
+.ProseMirror.note-editor {
+  min-height: 6rem;
+  max-height: 16rem;
+  overflow-y: auto;
+}

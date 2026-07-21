@@ -65,6 +65,7 @@ export const modelOptionSchema = z.object({
   id: z.string(),
   label: z.string(),
   tier: z.string(),
+  cost_hint: z.string(),
 });
 export const modelGroupSchema = z.object({
   default: z.string(),

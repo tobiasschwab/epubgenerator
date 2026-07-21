@@ -21,6 +21,7 @@ export function ModelSelect({
   value: string;
   onChange: (id: string) => void;
 }) {
+  const selected = group.options.find((o) => o.id === value);
   return (
     <div className="space-y-1">
       <Label>{label}</Label>
@@ -32,6 +33,11 @@ export function ModelSelect({
           </option>
         ))}
       </Select>
+      {selected?.cost_hint && (
+        <p className="text-xs text-muted-foreground">
+          Kosten (Richtwert): {selected.cost_hint}
+        </p>
+      )}
     </div>
   );
 }

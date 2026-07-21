@@ -57,32 +57,67 @@ body {
 }
 .annotation-note {
   display: block;
-  margin: 0.5rem 0;
-  padding: 0.5rem 0.75rem;
+  margin: 0.6rem 0;
+  padding: 0.5rem 0.75rem 0.5rem 2rem;
   border-left: 3px solid #1a4ba3;
   background: #eef3fb;
-  border-radius: 4px;
+  border-radius: 6px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.12);
   font-family: sans-serif;
   font-size: 0.9rem;
+  position: relative;
 }
 .annotation-note[hidden] { display: none; }
-.annotation-note p { margin: 0 0 0.3em; }
+.annotation-note > .annotation-mark {
+  position: absolute;
+  left: 0.6rem;
+  top: 0.5rem;
+  font-weight: 700;
+  vertical-align: baseline;
+}
+.annotation-note p { margin: 0 0 0.35em; }
 .annotation-note p:last-child { margin-bottom: 0; }
-aside.annotation-note { border-left-color: #999; }
+.annotation-note ul, .annotation-note ol { margin: 0.2em 0 0.4em 1.2em; }
+aside.annotation-note { border-left-color: #999; box-shadow: none; }
 """.strip()
 
-# Klick-Logik nur für die interaktive Vorschau (Popover ein-/ausklappen).
+# Klick-Logik nur für die interaktive Vorschau: Erklärung als schwebendes
+# Popover nahe dem angeklickten Wort ein-/ausblenden.
 ANNOTATION_JS = """
-document.addEventListener('click', function (e) {
-  var btn = e.target.closest('.annotation-ref');
-  if (!btn) return;
-  var id = btn.getAttribute('aria-controls');
-  var note = id && document.getElementById(id);
-  if (!note) return;
-  var open = !note.hasAttribute('hidden');
-  if (open) { note.setAttribute('hidden', 'hidden'); btn.setAttribute('aria-expanded', 'false'); }
-  else { note.removeAttribute('hidden'); btn.setAttribute('aria-expanded', 'true'); }
-});
+(function () {
+  function hideAll() {
+    document.querySelectorAll('.annotation-note:not([hidden])').forEach(function (n) {
+      n.setAttribute('hidden', 'hidden');
+      n.style.position = '';
+    });
+    document.querySelectorAll('.annotation-ref[aria-expanded="true"]').forEach(function (b) {
+      b.setAttribute('aria-expanded', 'false');
+    });
+  }
+  document.addEventListener('click', function (e) {
+    var btn = e.target.closest('.annotation-ref');
+    if (!btn) {
+      if (!e.target.closest('.annotation-note')) hideAll();
+      return;
+    }
+    var id = btn.getAttribute('aria-controls');
+    var note = id && document.getElementById(id);
+    if (!note) return;
+    var wasOpen = !note.hasAttribute('hidden');
+    hideAll();
+    if (!wasOpen) {
+      note.removeAttribute('hidden');
+      btn.setAttribute('aria-expanded', 'true');
+      var r = btn.getBoundingClientRect();
+      note.style.position = 'fixed';
+      note.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 340)) + 'px';
+      note.style.top = (r.bottom + 6) + 'px';
+      note.style.maxWidth = '320px';
+      note.style.margin = '0';
+      note.style.zIndex = '50';
+    }
+  });
+})();
 """.strip()
 
 PRINT_CSS = """

@@ -14,12 +14,26 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { useAiStatus } from "@/features/ai/hooks";
 import { api } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
 import { Annotation } from "./annotation-extension";
+import { NoteEditor } from "./NoteEditor";
+
+/** Klartext (mit Zeilenumbrüchen) → einfache HTML-Absätze für den Notiz-Editor. */
+function plainToHtml(text: string): string {
+  const paras = text
+    .split(/\n/)
+    .map((l) => l.trim())
+    .filter(Boolean)
+    .map((l) => `<p>${l.replace(/&/g, "&amp;").replace(/</g, "&lt;")}</p>`);
+  return paras.join("") || "<p></p>";
+}
+
+function isEmptyHtml(html: string): boolean {
+  return !html.replace(/<[^>]*>/g, "").trim();
+}
 
 interface Props {
   value: string;
@@ -32,13 +46,13 @@ interface Props {
  */
 export function RichTextEditor({ value, onChange }: Props) {
   const [annOpen, setAnnOpen] = useState(false);
-  const [noteText, setNoteText] = useState("");
+  const [noteHtml, setNoteHtml] = useState("");
   const [anchorText, setAnchorText] = useState("");
   const [anchorRealText, setAnchorRealText] = useState("");
   const aiStatus = useAiStatus();
   const explain = useMutation({
     mutationFn: (text: string) => api.ai.explain({ text, language: "Deutsch" }),
-    onSuccess: (res) => setNoteText(res.note),
+    onSuccess: (res) => setNoteHtml(plainToHtml(res.note)),
   });
 
   const editor = useEditor({
@@ -77,11 +91,11 @@ export function RichTextEditor({ value, onChange }: Props) {
     const existing = editor.getAttributes("annotation").note as string | undefined;
     setAnchorRealText(selected);
     setAnchorText(selected || "(bestehende Markierung)");
-    setNoteText(existing ?? "");
+    setNoteHtml(existing ?? "");
     setAnnOpen(true);
   };
   const applyAnnotation = () => {
-    editor.chain().focus().extendMarkRange("annotation").setAnnotation(noteText).run();
+    editor.chain().focus().extendMarkRange("annotation").setAnnotation(noteHtml).run();
     setAnnOpen(false);
   };
   const removeAnnotation = () => {
@@ -174,12 +188,7 @@ export function RichTextEditor({ value, onChange }: Props) {
                   </Button>
                 )}
               </div>
-              <Textarea
-                rows={8}
-                placeholder="z. B. Wort-für-Wort-Übersetzung, Grammatik, Aussprache …"
-                value={noteText}
-                onChange={(e) => setNoteText(e.target.value)}
-              />
+              <NoteEditor value={noteHtml} onChange={setNoteHtml} />
               {explain.isError && (
                 <p className="text-sm text-destructive">
                   KI-Erklärung fehlgeschlagen.
@@ -194,7 +203,7 @@ export function RichTextEditor({ value, onChange }: Props) {
               ) : (
                 <span />
               )}
-              <Button onClick={applyAnnotation} disabled={!noteText.trim()}>
+              <Button onClick={applyAnnotation} disabled={isEmptyHtml(noteHtml)}>
                 Übernehmen
               </Button>
             </div>

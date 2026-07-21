@@ -83,6 +83,8 @@ class ModelOption(BaseModel):
     label: str
     # Relativer Kostenhinweis für die UI: cheap | standard | premium | legacy
     tier: str
+    # Kurzer, konkreter Kostenhinweis für die UI (z. B. "~7 ct/Bild"). Richtwert.
+    cost_hint: str = ""
 
 
 class ModelGroup(BaseModel):

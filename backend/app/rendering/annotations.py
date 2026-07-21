@@ -20,6 +20,8 @@ from xml.sax.saxutils import quoteattr
 
 from lxml import etree, html as lxml_html
 
+from app.rendering.sanitize import normalize_fragment
+
 # Sentinels aus dem Unicode-Private-Use-Bereich: markieren die Einfügestellen,
 # ohne mit Nutzertext oder XML-Escaping zu kollidieren.
 _TOKEN_OPEN = ""
@@ -36,27 +38,69 @@ def new_counter() -> Iterator[int]:
     return count(1)
 
 
-def _note_to_html(note: str) -> str:
-    """Klartext-Erklärung (mit Zeilenumbrüchen) → einfache Absätze."""
+def _note_block(note: str) -> str:
+    """Erklärung als Block-HTML (Rich-Text sanitisiert, oder Klartext→Absätze)."""
+    if "<" in note:
+        cleaned = normalize_fragment(note)
+        if cleaned:
+            return cleaned
     lines = [line.strip() for line in note.splitlines()]
     paras = [f"<p>{escape(line)}</p>" for line in lines if line]
     return "".join(paras) or f"<p>{escape(note.strip())}</p>"
 
 
+def _note_inline(note: str) -> str:
+    """Erklärung inline-tauglich flach (für PDF-Fußnoten; behält fett/kursiv)."""
+    root = lxml_html.fragment_fromstring(_note_block(note), create_parent="div")
+
+    def inline(el: etree._Element) -> str:
+        s = escape(el.text) if el.text else ""
+        for child in el:
+            tag = child.tag if isinstance(child.tag, str) else ""
+            inner = inline(child)
+            if tag in ("strong", "b"):
+                s += f"<strong>{inner}</strong>"
+            elif tag in ("em", "i"):
+                s += f"<em>{inner}</em>"
+            elif tag == "code":
+                s += f"<code>{inner}</code>"
+            elif tag == "br":
+                s += "<br/>"
+            else:
+                s += inner
+            if child.tail:
+                s += escape(child.tail)
+        return s
+
+    lines: list[str] = []
+    if root.text and root.text.strip():
+        lines.append(escape(root.text.strip()))
+    for child in root:
+        tag = child.tag if isinstance(child.tag, str) else ""
+        if tag in ("ul", "ol"):
+            lines.extend("• " + inline(li) for li in child.findall("li"))
+        else:
+            lines.append(inline(child))
+    return "<br/>".join(x for x in lines if x)
+
+
 def _build_ref(mode: AnnotationMode, n: int, anchor: str, note: str) -> tuple[str, str]:
-    """Liefert (Inline-Ersatz, optionales Aside) für eine Annotation."""
+    """Liefert (Inline-Referenz, optionaler Block auf Section-Ebene)."""
     esc = escape(anchor)
     mark = f'<sup class="annotation-mark">{n}</sup>'
     if mode is AnnotationMode.interactive:
         note_id = f"note-{n}"
         ref = (
-            '<span class="annotation">'
             f'<button type="button" class="annotation-ref" aria-expanded="false" '
             f'aria-controls={quoteattr(note_id)}>{esc}{mark}</button>'
-            f'<span class="annotation-note" id={quoteattr(note_id)} role="note" hidden="hidden">'
-            f"{_note_to_html(note)}</span></span>"
         )
-        return ref, ""
+        # Block auf Section-Ebene (kein Block-in-Inline) → per JS als Popover.
+        block = (
+            f'<div class="annotation-note" id={quoteattr(note_id)} role="note" '
+            f'hidden="hidden"><span class="annotation-mark">{n}</span>'
+            f"{_note_block(note)}</div>"
+        )
+        return ref, block
     if mode is AnnotationMode.epub:
         ref = (
             f'<a class="annotation-ref" epub:type="noteref" role="doc-noteref" '
@@ -64,12 +108,12 @@ def _build_ref(mode: AnnotationMode, n: int, anchor: str, note: str) -> tuple[st
         )
         aside = (
             f'<aside class="annotation-note" epub:type="footnote" role="doc-footnote" '
-            f'id="fn-{n}"><p><sup class="annotation-mark">{n}</sup> </p>{_note_to_html(note)}'
+            f'id="fn-{n}"><span class="annotation-mark">{n}</span>{_note_block(note)}'
             "</aside>"
         )
         return ref, aside
     # pdf: WeasyPrint verschiebt den Inhalt per float:footnote ans Seitenende.
-    ref = f'{esc}<span class="footnote">{_note_to_html(note)}</span>'
+    ref = f'{esc}<span class="footnote">{_note_inline(note)}</span>'
     return ref, ""
 
 
